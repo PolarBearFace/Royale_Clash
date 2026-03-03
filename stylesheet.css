@@ -1,0 +1,13 @@
+body{
+    background-color: black;
+    color: white;
+}
+canvas{
+    border: 1px solid black;
+    display: block;
+    margin: 0 auto;
+    background-image: url('gameBackground.jpeg'); 
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
