@@ -12,7 +12,5 @@ canvas{
     background-position: center center;
 }
 #title{
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    text-align: center;
 }
