@@ -11,3 +11,8 @@ canvas{
     background-repeat: no-repeat;
     background-position: center center;
 }
+#title{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
