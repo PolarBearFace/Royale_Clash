@@ -58,7 +58,6 @@ const gameArea = {
         this.canvas.width = 440;
         this.canvas.height = 680;
         this.context = this.canvas.getContext("2d");
-        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
     }
 }
 function startGame(){
