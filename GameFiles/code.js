@@ -67,3 +67,6 @@ function startGame(){
     alert("done!");
 }
 const currentUnits = []
+
+
+startGame()
