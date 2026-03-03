@@ -38,6 +38,17 @@ class Unit{
         this.id = id
         this.pos = [x,y]
         this.stats = unitStats.type
+        this.active = true
+        ctx = gameArea.context;
+        ctx.fillStyle = this.checkColor();
+        ctx.fillRect(this.pos[0],this.pos[1],40,60)
+    }
+    checkColor(){
+        let color = 'black';
+        if (this.type == 'knight'){
+            color = 'gray';
+        }
+        return color;
     }
 }
 
@@ -52,4 +63,6 @@ const gameArea = {
 }
 function startGame(){
     gameArea.start();
+    currentUnits.append(new Unit('knight','blue_knight_1',50,50))
 }
+const currentUnits = []
