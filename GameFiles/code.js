@@ -40,14 +40,18 @@ class Unit{
         this.stats = unitStats.type
         this.active = true
         ctx = gameArea.context;
+        alert('going to color')
         ctx.fillStyle = this.checkColor();
+        alert('color gotten')
         ctx.fillRect(this.pos[0],this.pos[1],40,60)
     }
     checkColor(){
+        alert('at color')
         let color = 'black';
         if (this.type == 'knight'){
             color = 'gray';
         }
+        alert('returning color')
         return color;
     }
 }
