@@ -124,7 +124,7 @@ class Card{
         this.pos = 'deck';
         this.cost = cards[this.type] ? cards[this.type].cost : (type.cost || 0);
     }
-})
+}
 class Unit{
     /**
      * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
