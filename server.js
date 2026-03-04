@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 8440;
+const PORT = 2000;
 
 const consoleInjection = `
 <script>
