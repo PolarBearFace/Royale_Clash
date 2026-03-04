@@ -59,7 +59,7 @@ const gameArea = {
         this.canvas.height = 680;
         this.context = this.canvas.getContext("2d");
         alert('context gotten')
-        document.body.insertBefore(this.canvas, document.body.childNodes[2]);
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
     }
 }
 function startGame(){
@@ -67,7 +67,7 @@ function startGame(){
     currentUnits.append(new Unit('knight','blue_knight_1',50,50))
     alert("done!");
 }
-const currentUnits = []
+let currentUnits = []
 
 
 startGame()
