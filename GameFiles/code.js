@@ -69,7 +69,7 @@ const gameArea = {
 function startGame(){
     gameArea.start();
     currentUnits.append(new Unit(unitStats.knight,'blue_knight_1',50,50))
-    alert(currentUnits[0].type + " id: "currentUnits[0].id);
+    alert(currentUnits[0].type + " id: " + currentUnits[0].id);
 }
 let currentUnits = []
 
