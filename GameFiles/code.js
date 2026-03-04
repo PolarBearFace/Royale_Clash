@@ -1,3 +1,8 @@
+// Browser-safe randomInt replacement
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min) + min);
+}
+
 const cards = {
     knight: {
         cost: 3
@@ -28,7 +33,7 @@ class Card{
         this.team = team;
         //deck, next, 1, 2, 3, 4
         this.pos = 'deck';
-        this.cost = cards.type.cost;
+        this.cost = type.cost;
     }
 }
 
@@ -51,8 +56,8 @@ class Unit{
         return color;
     }
 }
-const blueDeck = [new Card('knight','blue'),new Card('minipekka','blue')]
-const redDeck = [new Card('knight','red'),new Card('minipekka','red')]
+let blueDeck = [new Card(cards.knight,'blue'),new Card(cards.minipekka,'blue')]
+let redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red')]
 const gameArea = {
     canvas : document.createElement("canvas"),
     start : function() {
@@ -65,8 +70,28 @@ const gameArea = {
 function startGame(){
     gameArea.start();
     currentUnits.push(new Unit(unitStats.knight,'blue_knight_1',50,50));
+    blueDeck = rollDeck('blue');
+    redDeck = rollDeck('red');
 }
 let currentUnits = []
-
+function rollDeck(team){
+    let newDeck = []
+    let oldDeck = team == 'blue' ? blueDeck : redDeck;
+    const originalCount = oldDeck.length;
+    for (let i = 0; i < originalCount; i++){
+        const idx = randomInt(0, oldDeck.length);
+        const randomCard = oldDeck.splice(idx, 1)[0];
+        newDeck.push(randomCard);
+    }
+    if (newDeck.length > 0){newDeck[0].pos = 1;}
+    if (newDeck.length > 1){newDeck[1].pos = 2;}
+    if (newDeck.length > 2){newDeck[2].pos = 3;}
+    if (newDeck.length > 3){newDeck[3].pos = 4;}
+    if (newDeck.length > 4){newDeck[4].pos = 'next';}
+    return newDeck;
+}
 startGame()
 console.log('game started')
+function print(string){
+    console.log(string);
+}
