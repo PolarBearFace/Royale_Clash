@@ -33,11 +33,10 @@ class Card{
 }
 
 class Unit{
-    constructor(type,id,x,y){
-        this.type = type
+    constructor(stats,id,x,y){
         this.id = id
         this.pos = [x,y]
-        this.stats = unitStats.type
+        this.stats = stats
         this.active = true
         ctx = gameArea.context;
         alert('going to color')
@@ -68,7 +67,7 @@ const gameArea = {
 }
 function startGame(){
     gameArea.start();
-    currentUnits.append(new Unit('knight','blue_knight_1',50,50))
+    currentUnits.append(new Unit(unitStats.knight,'blue_knight_1',50,50))
     alert("done!");
 }
 let currentUnits = []
