@@ -1,4 +1,9 @@
-// Browser-safe randomInt replacement
+/**
+ * Browser safe random integer generator. Returns a random integer between min (inclusive) and max (exclusive).
+ * @param {number} min 
+ * @param {number} max 
+ * @returns a random integer between min (inclusive) and max (exclusive)
+ */
 function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
 }
@@ -101,6 +106,11 @@ const unitStats = {
     }
 }
 class Card{
+    /**
+     * Uses card type or card object to create a card instance. If given a card object, it will try to find the corresponding key in the cards object. If it can't find it, it will use 'unknown' as the type and 0 as the cost.
+     * @param {object | string} type 
+     * @param {string} team 
+     */
     constructor(type,team){
         // Normalize type to a string key (accept either a key or the card object)
         if (typeof type === 'string') {
@@ -114,9 +124,15 @@ class Card{
         this.pos = 'deck';
         this.cost = cards[this.type] ? cards[this.type].cost : (type.cost || 0);
     }
-}
-
+})
 class Unit{
+    /**
+     * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
+     * @param {object} stats 
+     * @param {string} id 
+     * @param {number} x 
+     * @param {number} y 
+     */
     constructor(stats,id,x,y){
         this.id = id
         this.type = id.split('_')[1]
@@ -127,6 +143,11 @@ class Unit{
         ctx.fillStyle = this.checkColor(this.type);
         ctx.fillRect(this.pos[0],this.pos[1],40,40)
     }
+    /**
+     * Checks the color of the unit based on its type.
+     * @param {string} type 
+     * @returns {string} color to draw the unit based on its type (currently just checks if it's a knight or not, may need to be expanded in the future)
+     */
     checkColor(type){
         let color = 'black';
         if (type == 'knight'){
@@ -154,6 +175,11 @@ function startGame(){
     renderDecks();
 }
 let currentUnits = []
+/**
+ * Randomizes the deck order for the given team and returns the new deck. Also sets the pos property of each card in the deck based on its position in the array (1-4 for the first 4 cards, 'next' for the 5th card, and 'deck' for the rest).
+ * @param {string} team 
+ * @returns the randomized deck for the given team, also sets the pos property of each card in the deck based on its position in the array (1-4 for the first 4 cards, 'next' for the 5th card, and 'deck' for the rest)
+ */
 function rollDeck(team){
     let newDeck = []
     let oldDeck = team == 'blue' ? blueDeck : redDeck;
@@ -170,8 +196,6 @@ function rollDeck(team){
     if (newDeck.length > 4){newDeck[4].pos = 'next';}
     return newDeck;
 }
-startGame()
-console.log('game started')
 function renderDecks() {
     const blueEl = document.getElementById('blue-deck-list');
     const redEl = document.getElementById('red-deck-list');
@@ -189,9 +213,16 @@ function renderDecks() {
         redEl.appendChild(li);
     });
 }
-
 // render initial decks
+startGame()
+console.log('game started')
 renderDecks();
+/**
+ * Prints a message to the console and sends it to the server for logging. Used since I'm used to Python. (console.log still has normal functionality)
+ * @param {string} string 
+ */
 function print(string){
     console.log(string);
 }
+
+print('all code loaded')
