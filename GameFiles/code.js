@@ -35,6 +35,7 @@ class Card{
 class Unit{
     constructor(stats,id,x,y){
         this.id = id
+        this.type = id.substring(id.indexOf('_'),id.indexOf('_',id.indexOf('_')))
         this.pos = [x,y]
         this.stats = stats
         this.active = true
@@ -68,7 +69,7 @@ const gameArea = {
 function startGame(){
     gameArea.start();
     currentUnits.append(new Unit(unitStats.knight,'blue_knight_1',50,50))
-    alert("done!");
+    alert(currentUnits[0].type + " id: "currentUnits[0].id);
 }
 let currentUnits = []
 
