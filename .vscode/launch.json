@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "chrome",
+            "name": "Open Game in Browser",
+            "type": "node",
             "request": "launch",
-            "name": "Launch Chrome from file",
-            "url": "file://${workspaceFolder}/GameFiles/game.html",
-            "webRoot": "${workspaceFolder}/GameFiles"
+            "skipFiles": ["<node_internals>/**"],
+            "program": "${workspaceFolder}/server.js"
         }
     ]
 }

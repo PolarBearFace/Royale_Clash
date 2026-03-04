@@ -35,43 +35,38 @@ class Card{
 class Unit{
     constructor(stats,id,x,y){
         this.id = id
-        this.type = id.substring(id.indexOf('_'),id.indexOf('_',id.indexOf('_')))
+        this.type = id.split('_')[1]
         this.pos = [x,y]
         this.stats = stats
         this.active = true
-        ctx = gameArea.context;
-        alert('going to color')
-        ctx.fillStyle = this.checkColor();
-        alert('color gotten')
-        ctx.fillRect(this.pos[0],this.pos[1],40,60)
+        const ctx = gameArea.canvas.getContext('2d');
+        ctx.fillStyle = this.checkColor(this.type);
+        ctx.fillRect(this.pos[0],this.pos[1],40,40)
     }
-    checkColor(){
-        alert('at color')
+    checkColor(type){
         let color = 'black';
-        if (this.type == 'knight'){
+        if (type == 'knight'){
             color = 'gray';
         }
-        alert('returning color')
         return color;
     }
 }
-
+const blueDeck = [new Card('knight','blue'),new Card('minipekka','blue')]
+const redDeck = [new Card('knight','red'),new Card('minipekka','red')]
 const gameArea = {
     canvas : document.createElement("canvas"),
     start : function() {
         this.canvas.width = 440;
         this.canvas.height = 680;
         this.context = this.canvas.getContext("2d");
-        alert('context gotten')
-        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        document.body.insertBefore(this.canvas, document.body.childNodes[1]);
     }
 }
 function startGame(){
     gameArea.start();
-    currentUnits.append(new Unit(unitStats.knight,'blue_knight_1',50,50))
-    alert(currentUnits[0].type + " id: " + currentUnits[0].id);
+    currentUnits.push(new Unit(unitStats.knight,'blue_knight_1',50,50));
 }
 let currentUnits = []
 
-
 startGame()
+console.log('game started')
