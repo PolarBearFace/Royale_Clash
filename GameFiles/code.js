@@ -123,11 +123,13 @@ class Card{
         //deck, next, 1, 2, 3, 4
         this.pos = 'deck';
         this.cost = cards[this.type] ? cards[this.type].cost : (type.cost || 0);
+        // initial x is just base; actual position will be set by rollDeck when drawn
+        this.x = 20;
     }
 }
 class Unit{
     /**
-     * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
+     * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] internally, representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
      * @param {object} stats 
      * @param {string} id 
      * @param {number} x 
@@ -156,8 +158,8 @@ class Unit{
         return color;
     }
 }
-let blueDeck = [new Card(cards.knight,'blue'),new Card(cards.minipekka,'blue'),new Card(cards.skeleton,'blue'),new Card(cards.flyingMachine,'blue'),new Card(cards.wizard,'blue'),new Card(cards.prince,'blue'),new Card(cards.archers,'blue'),new Card(cards.valkyrie,'blue')]
-let redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red'),new Card(cards.skeleton,'red'),new Card(cards.flyingMachine,'red'),new Card(cards.wizard,'red'),new Card(cards.prince,'red'),new Card(cards.archers,'red'),new Card(cards.valkyrie,'red')]
+let blueDeck = []
+let redDeck = []
 const gameArea = {
     canvas : document.createElement("canvas"),
     start : function() {
@@ -169,7 +171,8 @@ const gameArea = {
 }
 function startGame(){
     gameArea.start();
-    currentUnits.push(new Unit(unitStats.knight,'blue_knight_1',50,50));
+    blueDeck = [new Card(cards.knight,'blue'),new Card(cards.minipekka,'blue'),new Card(cards.skeleton,'blue'),new Card(cards.flyingMachine,'blue'),new Card(cards.wizard,'blue'),new Card(cards.prince,'blue'),new Card(cards.archers,'blue'),new Card(cards.valkyrie,'blue')]
+    redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red'),new Card(cards.skeleton,'red'),new Card(cards.flyingMachine,'red'),new Card(cards.wizard,'red'),new Card(cards.prince,'red'),new Card(cards.archers,'red'),new Card(cards.valkyrie,'red')]
     blueDeck = rollDeck('blue');
     redDeck = rollDeck('red');
     renderDecks();
@@ -194,6 +197,38 @@ function rollDeck(team){
     if (newDeck.length > 2){newDeck[2].pos = 3;}
     if (newDeck.length > 3){newDeck[3].pos = 4;}
     if (newDeck.length > 4){newDeck[4].pos = 'next';}
+    if (team === 'blue') {
+        const ctx = gameArea.canvas.getContext('2d');
+        // clear previous deck area to avoid artifacts
+        ctx.clearRect(0, 600, gameArea.canvas.width, 80);
+        const BASE_X = 20;
+        const CARD_WIDTH = 70;
+        const CARD_HEIGHT = 100;
+        const CARD_SPACING = 90; // horizontal gap between card origins
+        for (let i = 0; i < newDeck.length; i++){
+            const card = newDeck[i];
+            if (card.pos === 'deck') continue; // only draw visible positions
+            // determine scale: numeric positions are full size, others (e.g. 'next') half size
+            const scale = typeof card.pos === 'number' ? 1 : 0.5;
+            const w = CARD_WIDTH * scale;
+            const h = CARD_HEIGHT * scale;
+            // compute x position; place 'next' after the four active cards
+            if (card.pos === 'next') {
+                card.x = BASE_X + 4 * CARD_SPACING;
+            } else {
+                card.x = BASE_X + (card.pos - 1) * CARD_SPACING;
+            }
+            // bottom-align smaller cards to the row
+            const y = 560 + (CARD_HEIGHT - h);
+            ctx.fillStyle = 'gray';
+            ctx.fillRect(card.x, y, w, h);
+            ctx.fillStyle = 'white';
+            ctx.fillText(card.type, card.x + 5, y + h / 2 + 5);
+            if (typeof card.pos === 'number') {
+                ctx.fillText(`Cost: ${card.cost}`, card.x + 5, y + h / 2 + 20);
+            }
+        }
+    }
     return newDeck;
 }
 function renderDecks() {
