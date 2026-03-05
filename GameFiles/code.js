@@ -126,6 +126,34 @@ class Card{
         // initial x is just base; actual position will be set by rollDeck when drawn
         this.x = 20;
     }
+    renderCards(){
+        const ctx = gameArea.canvas.getContext('2d');
+        const BASE_X = 20;
+        const CARD_WIDTH = 70;
+        const CARD_HEIGHT = 100;
+        const CARD_SPACING = 90; // horizontal gap between card origins
+        if (this.pos === 'deck') return; // only draw visible positions
+        // determine scale: numeric positions are full size, others (e.g. 'next') half size
+        const scale = typeof this.pos === 'number' ? 1 : 0.5;
+        const w = CARD_WIDTH * scale;
+        const h = CARD_HEIGHT * scale;
+        // compute x position; place 'next' after the four active cards
+        if (this.pos === 'next') {
+            this.x = BASE_X + 4 * CARD_SPACING;
+        } else {
+            this.x = BASE_X + (this.pos - 1) * CARD_SPACING;
+        }
+        // bottom-align smaller cards to the row
+        const y = 560 + (CARD_HEIGHT - h);
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(this.x, y, w, h);
+        ctx.fillStyle = 'white';
+        ctx.fillText(this.type, this.x + 5, y + h / 2 + 5);
+        if (typeof this.pos === 'number') {
+            ctx.fillText(`Cost: ${this.cost}`, this.x + 5, y + h / 2 + 20);
+        }
+    
+    }
 }
 class Unit{
     /**
@@ -171,20 +199,34 @@ const gameArea = {
 }
 function startGame(){
     gameArea.start();
-    blueDeck = [new Card(cards.knight,'blue'),new Card(cards.minipekka,'blue'),new Card(cards.skeleton,'blue'),new Card(cards.flyingMachine,'blue'),new Card(cards.wizard,'blue'),new Card(cards.prince,'blue'),new Card(cards.archers,'blue'),new Card(cards.valkyrie,'blue')]
-    redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red'),new Card(cards.skeleton,'red'),new Card(cards.flyingMachine,'red'),new Card(cards.wizard,'red'),new Card(cards.prince,'red'),new Card(cards.archers,'red'),new Card(cards.valkyrie,'red')]
+    blueDeck = [new Card(cards.knight,'blue'),new Card(cards.minipekka,'blue'),new Card(cards.skeleton,'blue'),new Card(cards.flyingMachine,'blue'),new Card(cards.wizard,'blue'),new Card(cards.prince,'blue'),new Card(cards.archers,'blue'),new Card(cards.valkyrie,'blue')];
+    redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red'),new Card(cards.skeleton,'red'),new Card(cards.flyingMachine,'red'),new Card(cards.wizard,'red'),new Card(cards.prince,'red'),new Card(cards.archers,'red'),new Card(cards.valkyrie,'red')];
+
     blueDeck = rollDeck('blue');
+    drawDeckOnCanvas('blue');          // only draw the player deck for now
+
     redDeck = rollDeck('red');
+    // drawDeckOnCanvas('red');        // uncomment if you want the enemy deck visible
+
     renderDecks();
 }
 let currentUnits = []
+
+// draw every card belonging to the specified team onto the canvas; the deck area is cleared once
+function drawDeckOnCanvas(team) {
+    const ctx = gameArea.canvas.getContext('2d');
+    ctx.clearRect(0, 600, gameArea.canvas.width, 80);
+    const deck = team === 'blue' ? blueDeck : redDeck;
+    deck.forEach(card => card.renderCards());
+}
+
 /**
  * Randomizes the deck order for the given team and returns the new deck. Also sets the pos property of each card in the deck based on its position in the array (1-4 for the first 4 cards, 'next' for the 5th card, and 'deck' for the rest).
  * @param {string} team 
  * @returns the randomized deck for the given team, also sets the pos property of each card in the deck based on its position in the array (1-4 for the first 4 cards, 'next' for the 5th card, and 'deck' for the rest)
  */
 function rollDeck(team){
-    let newDeck = []
+    let newDeck = [];
     let oldDeck = team == 'blue' ? blueDeck : redDeck;
     const originalCount = oldDeck.length;
     for (let i = 0; i < originalCount; i++){
@@ -192,43 +234,25 @@ function rollDeck(team){
         const randomCard = oldDeck.splice(idx, 1)[0];
         newDeck.push(randomCard);
     }
+
+    // reset all positions first so we don't carry over stale values
+    for (let card of newDeck) {
+        card.pos = 'deck';
+    }
+
     if (newDeck.length > 0){newDeck[0].pos = 1;}
     if (newDeck.length > 1){newDeck[1].pos = 2;}
     if (newDeck.length > 2){newDeck[2].pos = 3;}
     if (newDeck.length > 3){newDeck[3].pos = 4;}
     if (newDeck.length > 4){newDeck[4].pos = 'next';}
+
+    // update global variable to the freshly shuffled deck
     if (team === 'blue') {
-        const ctx = gameArea.canvas.getContext('2d');
-        // clear previous deck area to avoid artifacts
-        ctx.clearRect(0, 600, gameArea.canvas.width, 80);
-        const BASE_X = 20;
-        const CARD_WIDTH = 70;
-        const CARD_HEIGHT = 100;
-        const CARD_SPACING = 90; // horizontal gap between card origins
-        for (let i = 0; i < newDeck.length; i++){
-            const card = newDeck[i];
-            if (card.pos === 'deck') continue; // only draw visible positions
-            // determine scale: numeric positions are full size, others (e.g. 'next') half size
-            const scale = typeof card.pos === 'number' ? 1 : 0.5;
-            const w = CARD_WIDTH * scale;
-            const h = CARD_HEIGHT * scale;
-            // compute x position; place 'next' after the four active cards
-            if (card.pos === 'next') {
-                card.x = BASE_X + 4 * CARD_SPACING;
-            } else {
-                card.x = BASE_X + (card.pos - 1) * CARD_SPACING;
-            }
-            // bottom-align smaller cards to the row
-            const y = 560 + (CARD_HEIGHT - h);
-            ctx.fillStyle = 'gray';
-            ctx.fillRect(card.x, y, w, h);
-            ctx.fillStyle = 'white';
-            ctx.fillText(card.type, card.x + 5, y + h / 2 + 5);
-            if (typeof card.pos === 'number') {
-                ctx.fillText(`Cost: ${card.cost}`, card.x + 5, y + h / 2 + 20);
-            }
-        }
+        blueDeck = newDeck;
+    } else {
+        redDeck = newDeck;
     }
+
     return newDeck;
 }
 function renderDecks() {
