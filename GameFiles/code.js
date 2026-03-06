@@ -52,7 +52,7 @@ const unitStats = {
     },
     minipekka: {
         maxHP: 817,
-		damage: 90,
+		damage: 200,
 		speed: 10,
 		attackSpeed: 0.8,
 		range: 20
@@ -82,10 +82,10 @@ const unitStats = {
     },
     prince: {
         maxHP: 1000,
-		damage: 200,
+		damage: 100,
 		speed: 10,
 		attackSpeed: 0.7,
-		range: 20,
+		range: 30,
         //[chargeTime, chargeDamageMult, chargeCooldown, chargeSpeedMult] (may need to add more)
         charge: [0,1.5,0,1.5]
     },
@@ -94,10 +94,10 @@ const unitStats = {
         damage: 50,
 		speed: 10,
 		attackSpeed: 0.5,
-		range: 20
+		range: 80
     },
     valkyrie: {
-        maxHP: 600,
+        maxHP: 800,
 		damage: 50,
 		speed: 10,
 		attackSpeed: 0.8,
