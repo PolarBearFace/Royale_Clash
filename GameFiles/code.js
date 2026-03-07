@@ -126,25 +126,23 @@ class Card{
         // initial x is just base; actual position will be set by rollDeck when drawn
         this.x = 20;
     }
-    renderCards(){
+    renderCards() {
         const ctx = gameArea.canvas.getContext('2d');
         const BASE_X = 20;
         const CARD_WIDTH = 70;
         const CARD_HEIGHT = 100;
-        const CARD_SPACING = 90; // horizontal gap between card origins
-        if (this.pos === 'deck') return; // only draw visible positions
-        // determine scale: numeric positions are full size, others (e.g. 'next') half size
+        const CARD_SPACING = 90;
+        if (this.pos === 'deck') return;
         const scale = typeof this.pos === 'number' ? 1 : 0.5;
         const w = CARD_WIDTH * scale;
         const h = CARD_HEIGHT * scale;
-        // compute x position; place 'next' after the four active cards
         if (this.pos === 'next') {
             this.x = BASE_X + 4 * CARD_SPACING;
         } else {
             this.x = BASE_X + (this.pos - 1) * CARD_SPACING;
         }
-        // bottom-align smaller cards to the row
-        const y = 560 + (CARD_HEIGHT - h);
+        // Use this.y if set, otherwise default to 560
+        const y = this.y !== undefined ? this.y : 560 + (CARD_HEIGHT - h);
         ctx.fillStyle = 'gray';
         ctx.fillRect(this.x, y, w, h);
         ctx.fillStyle = 'white';
@@ -152,7 +150,12 @@ class Card{
         if (typeof this.pos === 'number') {
             ctx.fillText(`Cost: ${this.cost}`, this.x + 5, y + h / 2 + 20);
         }
-    
+    }
+    onHover(){
+        this.y = 540; // move card up on hover
+    }
+    onHoverExit(){
+        this.y = undefined; // reset to default position
     }
 }
 class Unit{
@@ -215,7 +218,7 @@ let currentUnits = []
 // draw every card belonging to the specified team onto the canvas; the deck area is cleared once
 function drawDeckOnCanvas(team) {
     const ctx = gameArea.canvas.getContext('2d');
-    ctx.clearRect(0, 600, gameArea.canvas.width, 80);
+    ctx.clearRect(0, 520, gameArea.canvas.width, 160); // clear from y=520 to 680 to cover hover positions
     const deck = team === 'blue' ? blueDeck : redDeck;
     deck.forEach(card => card.renderCards());
 }
@@ -272,6 +275,58 @@ function renderDecks() {
         redEl.appendChild(li);
     });
 }
+
+let hoveredCard = null; // Track the currently hovered card
+
+function getMousePos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
+}
+
+gameArea.canvas.addEventListener('mousemove', function(evt) {
+    const mousePos = getMousePos(gameArea.canvas, evt);
+    let newHoveredCard = null;
+
+    // Check hover for blue deck cards (adjust for red deck if needed)
+    blueDeck.forEach(card => {
+        if (card.pos !== 'deck' && card.pos !== 'next') {
+            const scale = typeof card.pos === 'number' ? 1 : 0.5;
+            const w = 70 * scale;
+            const h = 100 * scale;
+            const y = 560 + (100 - h); // Always use default y for hover detection to prevent flashing
+            if (mousePos.x >= card.x && mousePos.x <= card.x + w &&
+                mousePos.y >= y && mousePos.y <= y + h) {
+                newHoveredCard = card;
+            }
+        }
+    });
+
+    // Update hover state
+    if (hoveredCard !== newHoveredCard) {
+        if (hoveredCard) {
+            hoveredCard.onHoverExit();
+        }
+        if (newHoveredCard) {
+            newHoveredCard.onHover();
+        }
+        hoveredCard = newHoveredCard;
+        // Re-render to show changes
+        drawDeckOnCanvas('blue');
+    }
+});
+
+// Optional: Reset hover on mouse leave
+gameArea.canvas.addEventListener('mouseleave', function() {
+    if (hoveredCard) {
+        hoveredCard.onHoverExit();
+        hoveredCard = null;
+        drawDeckOnCanvas('blue');
+    }
+});
+
 // render initial decks
 startGame()
 console.log('game started')
