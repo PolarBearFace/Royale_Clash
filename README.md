@@ -4,7 +4,7 @@ To use: download the zip file, go to 'GameFiles' and open 'game.html'.
 
 <strong>ROADMAP:</strong>
 <ul>
-    <li>Finish Card display, hover, click events, and placement</li>
+    <li>Click events, and placement</li>
     <li>Unit rendering</li>
     <li>Unit movement basics</li>
     <li>Enemy units and proper pathfinding updating</li>
