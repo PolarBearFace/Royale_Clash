@@ -1,5 +1,6 @@
 # Royale Clash
 Same but better and no images required
+Currently to play: You will first need a GitHub account. Go to vscode.dev (sign in if needed), hit open repository, hit open repository from github, and search for the repo. Then, go to the run and debug option on the sidebar. Click continue working on, and create new codespace. Select whichever option (any works). Once it loads, go to Run and Debug on the sidebar and hit the play button. It should work. Open an issue if it doesn't. My instructions may be faulty.
 
 <strong>ROADMAP:</strong>
 <ul>
