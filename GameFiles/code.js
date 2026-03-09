@@ -8,104 +8,11 @@ function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
 }
 
-const cards = {
-    knight: {
-        cost: 3,
-        quantity: 1
-    },
-    minipekka: {
-        cost: 5,
-        quantity: 1
-    },
-    skeleton: {
-        cost: 1,
-        quantity: 3
-    },
-    flyingMachine: {
-        cost: 4,
-        quantity: 1
-    },
-    wizard: {
-        cost: 4,
-        quantity: 1
-    },
-    prince: {
-        cost: 5,
-        quantity: 1
-    },
-    archers: {
-        cost: 2,
-        quantity: 2
-    },
-    valkyrie: {
-        cost: 3,
-        quantity: 1
-    }
-}
-const unitStats = {
-    knight: {
-        maxHP: 690,
-        damage: 50,
-		speed: 10,
-		attackSpeed: 0.5,
-		range: 20
-    },
-    minipekka: {
-        maxHP: 817,
-		damage: 200,
-		speed: 10,
-		attackSpeed: 0.8,
-		range: 20
-    },
-    skeleton: {
-        maxHP: 50,
-        damage: 10,
-		speed: 10,
-		attackSpeed: 0.3,
-		range: 20
-    },
-    flyingMachine: {
-        maxHP: 400,
-		damage: 90,
-		speed: 10,
-		attackSpeed: 0.7,
-		range: 70
-    },
-    wizard: {
-        maxHP: 300,
-        damage: 60,
-		speed: 10,
-		attackSpeed: 0.5,
-		range: 80,
-        //[radius] (may need to add more)
-        aoe: [10]
-    },
-    prince: {
-        maxHP: 1000,
-		damage: 100,
-		speed: 10,
-		attackSpeed: 0.7,
-		range: 30,
-        //[chargeTime, chargeDamageMult, chargeCooldown, chargeSpeedMult] (may need to add more)
-        charge: [0,1.5,0,1.5]
-    },
-    archers: {
-        maxHP: 200,
-        damage: 50,
-		speed: 10,
-		attackSpeed: 0.5,
-		range: 80
-    },
-    valkyrie: {
-        maxHP: 800,
-		damage: 50,
-		speed: 10,
-		attackSpeed: 0.8,
-		range: 20,
-        aoe: [10]
-    }
-}
+// Will only work if using the server.js infrastructure. Otherwise, it will fail. May change either instructions or change back later
+import {cards, unitStats} from './cards.js';
+
 let pos = {x: 0, y: 0}; // global mouse position
+// Card class is a card in that can be used by a player. It stores what card it represents, which team it belongs to, its position (deck, next, 1-4), and its x and y coordinates for rendering on the canvas. It has methods for rendering itself on the canvas, handling hover effects, and handling clicks.
 class Card{
     /**
      * Uses card type or card object to create a card instance. If given a card object, it will try to find the corresponding key in the cards object. If it can't find it, it will use 'unknown' as the type and 0 as the cost.
@@ -193,7 +100,7 @@ class Card{
                 this.x = 20; // reset to base x; actual position will be set by rollDeck when drawn
                 this.y = undefined; // reset to default position
                 for (let i = 0; i<cards[this.type].quantity; i++){
-                    gameArea.activeUnits.push(new Unit(this.stats,`${this.team}_${this.type}_${gameArea.activeUnits.length+1}`,pos.x + i * 35,pos.y));
+                    gameArea.activeUnits.push(new Unit(this.stats,`${this.team}_${this.type}_${gameArea.activeUnits.length+1}`,pos.x + i * 15,pos.y));
                 }
                 updateDeckPositions('blue');
                 renderDecks();
@@ -205,32 +112,7 @@ class Card{
         }
     }
 }
-function checkCardRequirements(card,pos,player){
-    let canAfford = player.elixir >= card.cost
-    let inPlayField = pos.x >= gameArea.playField.x && pos.x <= gameArea.playField.x + gameArea.playField.width &&
-                      pos.y >= gameArea.playField.y && pos.y <= gameArea.playField.y + gameArea.playField.height
-    if (!canAfford){
-        alert('Not enough elixir!');
-    } else if (!inPlayField){
-        alert('Card must be played within the playfield!');
-    }
-    return canAfford && inPlayField;
-}
-function updateDeckPositions(team){
-    const deck = team === 'blue' ? blueDeck : redDeck;
-    for (let i = 0; i < deck.length; i++) {
-        if (i < 4) {
-            deck[i].pos = i + 1;
-            deck[i].y = undefined; // reset y position when card enters hand
-        } else if (i === 4) {
-            deck[i].pos = 'next';
-            deck[i].y = undefined; // reset y position when card becomes next
-        } else {
-            deck[i].pos = 'deck';
-            deck[i].y = undefined; // reset y position when card goes to deck
-        }
-    }
-}
+// Unit class is a unit on the play field. It has stats, an id for debugging purposes, a position, a size, whether it's alive, and a type.
 class Unit{
     /**
      * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] internally, representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
@@ -245,6 +127,7 @@ class Unit{
         this.pos = [x,y]
         this.stats = stats
         this.active = true
+        this.radius = cards[this.type].size ? cards[this.type].size : 15; // default radius if size is undefined
         print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
         // Drawing will be handled by drawDeckOnCanvas
     }
@@ -333,7 +216,9 @@ function drawDeckOnCanvas(team) {
     // Draw active units on top of the playfield
     gameArea.activeUnits.forEach(unit => {
         ctx.fillStyle = unit.checkColor(unit.type);
-        ctx.fillRect(unit.pos[0], unit.pos[1], 30, 30);
+        ctx.beginPath(); 
+        ctx.arc(unit.pos[0], unit.pos[1], unit.radius, 0, 2 * Math.PI); 
+        ctx.fill();
     });
 
     // Draw elixir display
@@ -408,7 +293,32 @@ function getMousePos(canvas, evt) {
         y: evt.clientY - rect.top
     };
 }
-
+function checkCardRequirements(card,pos,player){
+    let canAfford = player.elixir >= card.cost
+    let inPlayField = pos.x >= gameArea.playField.x && pos.x <= gameArea.playField.x + gameArea.playField.width &&
+                      pos.y >= gameArea.playField.y && pos.y <= gameArea.playField.y + gameArea.playField.height
+    if (!canAfford){
+        alert('Not enough elixir!');
+    } else if (!inPlayField){
+        alert('Card must be played within the playfield!');
+    }
+    return canAfford && inPlayField;
+}
+function updateDeckPositions(team){
+    const deck = team === 'blue' ? blueDeck : redDeck;
+    for (let i = 0; i < deck.length; i++) {
+        if (i < 4) {
+            deck[i].pos = i + 1;
+            deck[i].y = undefined; // reset y position when card enters hand
+        } else if (i === 4) {
+            deck[i].pos = 'next';
+            deck[i].y = undefined; // reset y position when card becomes next
+        } else {
+            deck[i].pos = 'deck';
+            deck[i].y = undefined; // reset y position when card goes to deck
+        }
+    }
+}
 gameArea.canvas.addEventListener('mousemove', function(evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
     pos = mousePos;
