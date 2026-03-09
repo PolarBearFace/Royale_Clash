@@ -105,6 +105,7 @@ const unitStats = {
         aoe: [10]
     }
 }
+let pos = {x: 0, y: 0}; // global mouse position
 class Card{
     /**
      * Uses card type or card object to create a card instance. If given a card object, it will try to find the corresponding key in the cards object. If it can't find it, it will use 'unknown' as the type and 0 as the cost.
@@ -125,6 +126,9 @@ class Card{
         this.cost = cards[this.type] ? cards[this.type].cost : (type.cost || 0);
         // initial x is just base; actual position will be set by rollDeck when drawn
         this.x = 20;
+        this.y = undefined; // y will be determined by renderCards based on pos and hover state
+        this.scale = 1; // default scale, can be modified for hover effect
+        this.isDragging = false; // flag to indicate if the card is being dragged
     }
     renderCards() {
         const ctx = gameArea.canvas.getContext('2d');
@@ -133,13 +137,18 @@ class Card{
         const CARD_HEIGHT = 100;
         const CARD_SPACING = 90;
         if (this.pos === 'deck') return;
-        const scale = typeof this.pos === 'number' ? 1 : 0.5;
-        const w = CARD_WIDTH * scale;
-        const h = CARD_HEIGHT * scale;
-        if (this.pos === 'next') {
-            this.x = BASE_X + 4 * CARD_SPACING;
+        this.scale = typeof this.pos === 'number' ? 1 : 0.5;
+        const w = CARD_WIDTH * this.scale;
+        const h = CARD_HEIGHT * this.scale;
+        if (selectedCard === this && this.isDragging) {
+            this.x = pos.x - 35; // center card on cursor
+            this.y = pos.y - 50;
         } else {
-            this.x = BASE_X + (this.pos - 1) * CARD_SPACING;
+            if (this.pos === 'next') {
+                this.x = BASE_X + 4 * CARD_SPACING;
+            } else {
+                this.x = BASE_X + (this.pos - 1) * CARD_SPACING;
+            }
         }
         // Use this.y if set, otherwise default to 560
         const y = this.y !== undefined ? this.y : 560 + (CARD_HEIGHT - h);
@@ -156,6 +165,27 @@ class Card{
     }
     onHoverExit(){
         this.y = undefined; // reset to default position
+    }
+    onClick(){
+        if (selectedCard === null){
+            // pos is set globally in click handler
+            const scale = typeof this.pos === 'number' ? 1 : 0.5;
+            const w = 70 * scale;
+            const h = 100 * scale;
+            const y = 560 + (100 - h); // Always use default y for click detection to prevent issues with hover state
+            if (pos.x >= this.x && pos.x <= this.x + w &&
+                pos.y >= y && pos.y <= y + h) {
+                selectedCard = this;
+                this.isDragging = false;
+            }
+            drawDeckOnCanvas('blue');
+        } else if (selectedCard === this){
+            selectedCard = null;
+            this.isDragging = false;
+            this.x = 20; // reset to base x; actual position will be set by rollDeck when drawn
+            this.y = undefined; // reset to default position
+            drawDeckOnCanvas('blue');
+        }
     }
 }
 class Unit{
@@ -218,7 +248,7 @@ let currentUnits = []
 // draw every card belonging to the specified team onto the canvas; the deck area is cleared once
 function drawDeckOnCanvas(team) {
     const ctx = gameArea.canvas.getContext('2d');
-    ctx.clearRect(0, 520, gameArea.canvas.width, 160); // clear from y=520 to 680 to cover hover positions
+    ctx.clearRect(0, 0, gameArea.canvas.width, 680); // clear from y=520 to 680 to cover hover positions
     const deck = team === 'blue' ? blueDeck : redDeck;
     deck.forEach(card => card.renderCards());
 }
@@ -277,6 +307,7 @@ function renderDecks() {
 }
 
 let hoveredCard = null; // Track the currently hovered card
+let selectedCard = null; // Track the currently selected card
 
 function getMousePos(canvas, evt) {
     const rect = canvas.getBoundingClientRect();
@@ -288,6 +319,7 @@ function getMousePos(canvas, evt) {
 
 gameArea.canvas.addEventListener('mousemove', function(evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
+    pos = mousePos;
     let newHoveredCard = null;
 
     // Check hover for blue deck cards (adjust for red deck if needed)
@@ -316,6 +348,24 @@ gameArea.canvas.addEventListener('mousemove', function(evt) {
         // Re-render to show changes
         drawDeckOnCanvas('blue');
     }
+    if (selectedCard) {
+        selectedCard.x = mousePos.x - 35; // center card on cursor
+        selectedCard.y = mousePos.y - 50;
+        selectedCard.isDragging = true;
+        drawDeckOnCanvas('blue');
+    }
+});
+
+gameArea.canvas.addEventListener('click', function(evt) {
+    const mousePos = getMousePos(gameArea.canvas, evt);
+    pos = mousePos;
+    // Check click for blue deck cards (adjust for red deck if needed)
+    blueDeck.forEach(card => {
+        if (card.pos !== 'deck' && card.pos !== 'next') {
+            card.onClick();
+            drawDeckOnCanvas('blue');
+        }
+    });
 });
 
 // Optional: Reset hover on mouse leave
