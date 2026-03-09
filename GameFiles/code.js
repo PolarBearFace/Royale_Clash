@@ -254,6 +254,20 @@ class Unit{
         let color = 'black';
         if (type == 'knight'){
             color = 'gray';
+        } else if (type == 'minipekka'){
+            color = 'purple';
+        } else if (type == 'skeleton'){
+            color = 'white';
+        } else if (type == 'flyingMachine'){
+            color = 'brown';
+        } else if (type == 'wizard'){
+            color = 'orange';
+        } else if (type == 'prince'){
+            color = 'gold';
+        } else if (type == 'archers'){
+            color = 'pink';
+        } else if (type == 'valkyrie'){
+            color = 'red';
         }
         return color;
     }
@@ -281,7 +295,7 @@ const redPlayer = {
     elixir: 0
 }
 const bluePlayer = {
-    elixir: 0
+    elixir: 1000
 }
 function startGame(){
     gameArea.start();
@@ -317,7 +331,7 @@ function drawDeckOnCanvas(team) {
     // Draw active units on top of the playfield
     gameArea.activeUnits.forEach(unit => {
         ctx.fillStyle = unit.checkColor(unit.type);
-        ctx.fillRect(unit.pos[0], unit.pos[1], 40, 40);
+        ctx.fillRect(unit.pos[0], unit.pos[1], 30, 30);
     });
 
     // Draw elixir display
