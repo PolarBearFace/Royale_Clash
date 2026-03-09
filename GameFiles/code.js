@@ -35,7 +35,7 @@ const cards = {
     },
     archers: {
         cost: 2,
-        quantity: 1
+        quantity: 2
     },
     valkyrie: {
         cost: 3,
@@ -192,7 +192,9 @@ class Card{
                 this.pos = 'deck'; // remove card from hand
                 this.x = 20; // reset to base x; actual position will be set by rollDeck when drawn
                 this.y = undefined; // reset to default position
-                gameArea.activeUnits.push(new Unit(this.stats,`${this.team}_${this.type}_${gameArea.activeUnits.length+1}`,pos.x,pos.y));
+                for (let i = 0; i<cards[this.type].quantity; i++){
+                    gameArea.activeUnits.push(new Unit(this.stats,`${this.team}_${this.type}_${gameArea.activeUnits.length+1}`,pos.x + i * 35,pos.y));
+                }
                 updateDeckPositions('blue');
                 renderDecks();
                 drawDeckOnCanvas('blue');
@@ -243,6 +245,7 @@ class Unit{
         this.pos = [x,y]
         this.stats = stats
         this.active = true
+        print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
         // Drawing will be handled by drawDeckOnCanvas
     }
     /**
@@ -327,7 +330,6 @@ function drawDeckOnCanvas(team) {
     ctx.fillStyle = 'green';
     ctx.fillRect(gameArea.playField.x, gameArea.playField.y,
                  gameArea.playField.width, gameArea.playField.height);
-
     // Draw active units on top of the playfield
     gameArea.activeUnits.forEach(unit => {
         ctx.fillStyle = unit.checkColor(unit.type);
