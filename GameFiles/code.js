@@ -11,6 +11,11 @@ function randomInt(min, max) {
 // Will only work if using the server.js infrastructure. Otherwise, it will fail. May change either instructions or change back later
 // Will fail using file:// protocol due to CORS issues with fetch, so only use with server.js
 import {cards, unitStats} from './cards.js';
+const gameState = {
+    lastTime: 0,
+    maxElixir: 10,
+    elixirRegenRate: 0.85, // elixir per second
+}
 
 let pos = {x: 0, y: 0}; // global mouse position
 //Used to make rendering easier, since it's kinda difficult right now to manage the rendering of units and whatnot
@@ -280,15 +285,19 @@ function startGame(){
     redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red'),new Card(cards.skeleton,'red'),new Card(cards.flyingMachine,'red'),new Card(cards.wizard,'red'),new Card(cards.prince,'red'),new Card(cards.archers,'red'),new Card(cards.valkyrie,'red')];
 
     blueDeck = rollDeck('blue');
-    drawDeckOnCanvas('blue');          // only draw the player deck for now
+    drawDeckOnCanvas('blue');
 
     redDeck = rollDeck('red');
-    // drawDeckOnCanvas('red');        // uncomment if you want the enemy deck visible
 
     renderDecks();
+    requestAnimationFrame(gameLoop);
 }
 let currentUnits = []
-
+function renderGame(){
+    const ctx = gameArea.canvas.getContext('2d');
+    ctx.clearRect(0, 0, gameArea.canvas.width, gameArea.canvas.height);
+    drawDeckOnCanvas('blue');
+}
 // draw every card belonging to the specified team onto the canvas; the deck area is cleared once
 function drawDeckOnCanvas(team) {
     const ctx = gameArea.canvas.getContext('2d');
@@ -409,6 +418,37 @@ function updateDeckPositions(team){
             deck[i].y = undefined; // reset y position when card goes to deck
         }
     }
+}
+function gameLoop(timestamp) {
+    let deltaTime = (timestamp - gameState.lastTime) / 1000; // convert to seconds
+    gameState.lastTime = timestamp;
+    if (deltaTime > 0.1) {deltaTime = 0.1;} // cap deltaTime to prevent big jumps
+    updateLogic(deltaTime);
+    renderGame();
+    requestAnimationFrame(gameLoop);
+}
+function updateLogic(deltaTime) {
+    if (bluePlayer.elixir < gameState.maxElixir) {
+        bluePlayer.elixir += gameState.elixirRegenRate * deltaTime;
+        if (bluePlayer.elixir > gameState.maxElixir) {
+            bluePlayer.elixir = gameState.maxElixir;
+        }
+    }
+    if (redPlayer.elixir < gameState.maxElixir) {
+        redPlayer.elixir += gameState.elixirRegenRate * deltaTime;
+        if (redPlayer.elixir > gameState.maxElixir) {
+            redPlayer.elixir = gameState.maxElixir;
+        }
+    }
+    gameArea.activeUnits.forEach(unit => {
+        // Placeholder logic for unit movement - currently just moves units up the field
+        if (unit.active) {
+            let direction = unit.id.startsWith('blue') ? -1 : 1; // blue units move up, red units move down
+            unit.pos[1] += direction * unit.stats.speed * deltaTime;
+            unit.shape.x = unit.pos[0];
+            unit.shape.y = unit.pos[1];
+        }
+    });
 }
 gameArea.canvas.addEventListener('mousemove', function(evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
