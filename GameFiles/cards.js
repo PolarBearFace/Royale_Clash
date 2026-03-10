@@ -48,28 +48,44 @@ export const unitStats = {
         damage: 50,
 		speed: 10,
 		attackSpeed: 0.5,
-		range: 20
+		range: 20,
+        type: {
+            melee: true,
+            ground: true
+        }
     },
     minipekka: {
         maxHP: 817,
 		damage: 200,
 		speed: 10,
 		attackSpeed: 0.8,
-		range: 20
+		range: 20,
+        type: {
+            melee: true,
+            ground: true
+        }
     },
     skeleton: {
         maxHP: 50,
         damage: 10,
 		speed: 10,
 		attackSpeed: 0.3,
-		range: 20
+		range: 20,
+        type: {
+            melee: true,
+            ground: true
+        }
     },
     flyingMachine: {
         maxHP: 400,
 		damage: 90,
 		speed: 10,
 		attackSpeed: 0.7,
-		range: 70
+		range: 70,
+        type: {
+            melee: false,
+            ground: false
+        }
     },
     wizard: {
         maxHP: 300,
@@ -78,7 +94,11 @@ export const unitStats = {
 		attackSpeed: 0.5,
 		range: 80,
         //[radius] (may need to add more)
-        aoe: [10]
+        aoe: [10],
+        type: {
+            melee: false,
+            ground: true
+        }
     },
     prince: {
         maxHP: 1000,
@@ -87,14 +107,22 @@ export const unitStats = {
 		attackSpeed: 0.7,
 		range: 30,
         //[chargeTime, chargeDamageMult, chargeCooldown, chargeSpeedMult] (may need to add more)
-        charge: [0,1.5,0,1.5]
+        charge: [0,1.5,0,1.5],
+        type: {
+            melee: true,
+            ground: true
+        }
     },
     archers: {
         maxHP: 200,
         damage: 50,
 		speed: 10,
 		attackSpeed: 0.5,
-		range: 80
+		range: 80,
+        type: {
+            melee: false,
+            ground: true
+        }
     },
     valkyrie: {
         maxHP: 800,
@@ -102,6 +130,24 @@ export const unitStats = {
 		speed: 10,
 		attackSpeed: 0.8,
 		range: 20,
-        aoe: [10]
+        aoe: [10],
+        type: {
+            melee: true,
+            ground: true
+        }
+    },
+    kingTower: {
+        maxHP: 2400,
+        damage: 50,
+        speed: null,
+        attackSpeed: 0.9,
+        range: 0
+    },
+    princessTower: {
+        maxHP: 1400,
+        damage: 50,
+        speed: null,
+        attackSpeed: 1.0,
+        range: 0
     }
 }

@@ -14,7 +14,7 @@ import {cards, unitStats} from './cards.js';
 const gameState = {
     lastTime: 0,
     maxElixir: 10,
-    elixirRegenRate: 0.85, // elixir per second
+    elixirRegenRate: 0.35, // elixir per second
 }
 
 let pos = {x: 0, y: 0}; // global mouse position
@@ -187,12 +187,16 @@ class Unit{
     constructor(stats,id,x,y){
         this.id = id
         this.type = id.split('_')[1]
+        this.team = id.split('_')[0]
         this.pos = [x,y]
         this.stats = stats
+        this.ai = {
+            targets: []
+        }
         this.active = true
         this.radius = cards[this.type].size ? cards[this.type].size : 15; // default radius if size is undefined
         this.shape = new Shape(x,y,'circle',{radius: this.radius}, this.checkColor(this.type));
-        print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
+        //print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
         // Drawing will be handled by drawDeckOnCanvas
     }
     /**
@@ -274,10 +278,16 @@ const gameArea = {
 }
 // will fill in more player things when needed
 const redPlayer = {
-    elixir: 0
+    elixir: 0,
+    crowns: 0,
+    castles: [true,true,true], // left princess, king, right princess; true means standing, false means destroyed
+    castleUnits: []
 }
 const bluePlayer = {
-    elixir: 1000
+    elixir: 0,
+    crowns: 0,
+    castles: [true,true,true], // left princess, king, right princess; true means standing, false means destroyed
+    castleUnits: []
 }
 function startGame(){
     gameArea.start();
@@ -290,6 +300,8 @@ function startGame(){
     redDeck = rollDeck('red');
 
     renderDecks();
+    // Add castles here:
+    
     requestAnimationFrame(gameLoop);
 }
 let currentUnits = []
@@ -397,11 +409,6 @@ function checkCardRequirements(card,pos,player){
     let canAfford = player.elixir >= card.cost
     let inPlayField = pos.x >= gameArea.playField.bottom.x && pos.x <= gameArea.playField.bottom.x + gameArea.playField.bottom.width &&
                       pos.y >= gameArea.playField.bottom.y && pos.y <= gameArea.playField.bottom.y + gameArea.playField.bottom.height
-    if (!canAfford){
-        alert('Not enough elixir!');
-    } else if (!inPlayField){
-        alert('Card must be played within valid area!');
-    }
     return canAfford && inPlayField;
 }
 function updateDeckPositions(team){
@@ -447,8 +454,116 @@ function updateLogic(deltaTime) {
             unit.pos[1] += direction * unit.stats.speed * deltaTime;
             unit.shape.x = unit.pos[0];
             unit.shape.y = unit.pos[1];
+            chooseTargets(unit); // Update targets for the unit based on its new position
         }
     });
+}
+
+// AI logic for units
+/**
+ * Returns a list of targets for the given unit in order of where it is pathfinding to. It will have a tower or other unit at the end, and a the bridge ends before it if it is not a flying unit.
+ * @param {object} unit 
+ * @return {Array}
+ */
+function chooseTargets(unit){
+    let targets = [];
+    if (unitStats[unit.type].type.ground){
+        // if it's a ground unit, add the bridge end as a target if it's not flying and not already past it
+        if (unit.pos[1] < gameArea.playField.bridges.y && unit.id.startsWith('blue')){
+            if (unit.pos[0] < gameArea.playField.width / 2){
+                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
+                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
+            } else {
+                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
+                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
+            }
+        } else if (unit.pos[1] > gameArea.playField.bridges.y + gameArea.playField.bridges.height && unit.id.startsWith('red')){
+            if (unit.pos[0] < gameArea.playField.width / 2){
+                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
+                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
+            } else {
+                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
+                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
+            }
+        }
+    }
+    if (unit.id.startsWith('blue')){
+        const currentX = unit.pos[0];
+        if (currentX < gameArea.playField.x + gameArea.playField.width / 2){
+            if (redPlayer.castles[0]){
+                targets.push({type: 'redPrincessTowerLeft', x: gameArea.playField.x, y: gameArea.playField.y + gameArea.playField.height/2});
+            }
+        } else if (currentX > gameArea.playField.x + gameArea.playField.width / 2){
+            if (redPlayer.castles[2]){
+                targets.push({type: 'redPrincessTowerRight', x: gameArea.playField.x + gameArea.playField.width, y: gameArea.playField.y + gameArea.playField.height/2});
+            }
+        }
+        if (redPlayer.castles[1]){
+            targets.push({type: 'redKingTower', x: gameArea.playField.x + gameArea.playField.width/2, y: gameArea.playField.y + gameArea.playField.height/2});
+        }
+    } else {
+        const currentX = unit.pos[0];
+        if (currentX < gameArea.playField.x + gameArea.playField.width / 2){
+            if (bluePlayer.castles[0]){
+                targets.push({type: 'bluePrincessTowerLeft', x: gameArea.playField.x, y: gameArea.playField.y + gameArea.playField.height/2});
+            }
+        } else if (currentX > gameArea.playField.x + gameArea.playField.width / 2){
+            if (bluePlayer.castles[2]){
+                targets.push({type: 'bluePrincessTowerRight', x: gameArea.playField.x + gameArea.playField.width, y: gameArea.playField.y + gameArea.playField.height/2});
+            }
+        }
+        if (bluePlayer.castles[1]){
+            targets.push({type: 'blueKingTower', x: gameArea.playField.x + gameArea.playField.width/2, y: gameArea.playField.y + gameArea.playField.height/2});
+        }
+    }
+    const closestUnit = getClosestUnit(unit);
+    if (closestUnit){
+        if (getDistance(unit.pos, closestUnit.pos) < getDistance(unit.pos, [targets[0].x, targets[0].y])){
+            targets.unshift({type: 'unit', x: closestUnit.pos[0], y: closestUnit.pos[1]});
+        }
+    }
+    return targets
+}
+/**
+ * @param {object} unit 
+ * @returns {Array} the closest enemy unit to the given unit, or null if there are no enemy units
+ */
+function getClosestUnit(unit){
+    if (unit.team === 'blue'){
+        const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'red' && u.active);
+        if (enemyUnits.length === 0) return null;
+        let closest = enemyUnits[0];
+        let closestDist = Math.hypot(unit.pos[0] - closest.pos[0], unit.pos[1] - closest.pos[1]);
+        for (let i = 1; i < enemyUnits.length; i++){
+            const dist = getDistance(unit.pos, enemyUnits[i].pos);
+            if (dist < closestDist){
+                closest = enemyUnits[i];
+                closestDist = dist;
+            }
+        }
+        return closest;
+    } else {
+        const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'blue' && u.active);
+        if (enemyUnits.length === 0) return null;
+        let closest = enemyUnits[0];
+        let closestDist = Math.hypot(unit.pos[0] - closest.pos[0], unit.pos[1] - closest.pos[1]);
+        for (let i = 1; i < enemyUnits.length; i++){
+            const dist = getDistance(unit.pos, enemyUnits[i].pos);
+            if (dist < closestDist){
+                closest = enemyUnits[i];
+                closestDist = dist;
+            }
+        }
+        return closest;
+    }
+}
+/**
+ * @param {Array} pos1 
+ * @param {Array} pos2 
+ * @returns {number} the distance between the two positions, where each position is an array [x, y]
+ */
+function getDistance(pos1, pos2){
+    return Math.hypot(pos1[0] - pos2[0], pos1[1] - pos2[1]);
 }
 gameArea.canvas.addEventListener('mousemove', function(evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
@@ -522,4 +637,4 @@ function print(string){
     console.log(string);
 }
 
-print('all code loaded')
+print('all code loaded');
