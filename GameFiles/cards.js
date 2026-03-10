@@ -2,6 +2,7 @@ export const cards = {
     knight: {
         cost: 3,
         quantity: 1,
+        //Currently defaults to 15
         size: undefined
     },
     minipekka: {

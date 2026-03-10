@@ -9,9 +9,52 @@ function randomInt(min, max) {
 }
 
 // Will only work if using the server.js infrastructure. Otherwise, it will fail. May change either instructions or change back later
+// Will fail using file:// protocol due to CORS issues with fetch, so only use with server.js
 import {cards, unitStats} from './cards.js';
 
 let pos = {x: 0, y: 0}; // global mouse position
+//Used to make rendering easier, since it's kinda difficult right now to manage the rendering of units and whatnot
+class Shape{
+    /**
+     * Creates a shape instance with the given x and y coordinates, shape type, properties, and color. The shape will be drawn on the canvas based on its type and properties. The properties parameter is an object that can contain different keys depending on the shape type (e.g. radius for circles, width and height for rectangles, etc.). The color parameter is a string representing the color to draw the shape.
+     * @param {number} x 
+     * @param {number} y 
+     * @param {string} shape 
+     * @param {object} properties 
+     * @param {string} color 
+     */
+    constructor(x,y,shape='circle',properties={},color='black'){
+        this.x = x;
+        this.y = y;
+        this.shape = shape;
+        //Properties that are shape dependent, like radius for circles, width and height for rectangles, etc. Should be passed in as an object with relevant keys (e.g. {radius: 10} for circles, {width: 20, height: 30} for rectangles)
+        this.properties = properties;
+        this.color = color;
+        this.visible = true; // flag to control whether the shape should be rendered; can be used for things like hover effects without needing to remove the shape from the game state
+    }
+    render(ctx){
+        if (!this.visible) return; // skip rendering if shape is not visible
+        ctx.fillStyle = this.color;
+        if (this.shape === 'circle'){
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.properties.radius || 10, 0, 2 * Math.PI);
+            ctx.fill();
+        } else if (this.shape === 'rectangle'){
+            ctx.fillRect(this.x, this.y, this.properties.width || 20, this.properties.height || 10);
+        } else if (this.shape === 'line'){
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.properties.x2 || this.x + 20, this.properties.y2 || this.y + 20);
+            ctx.stroke();
+        }else if (this.shape === 'text'){
+            ctx.font = this.properties.font || '16px Arial';
+            ctx.fillText(this.properties.text || '', this.x, this.y); 
+        } else {
+            // default to a small square if shape type is unrecognized
+            ctx.fillRect(this.x, this.y, 10, 10);
+        }
+    }
+}
 // Card class is a card in that can be used by a player. It stores what card it represents, which team it belongs to, its position (deck, next, 1-4), and its x and y coordinates for rendering on the canvas. It has methods for rendering itself on the canvas, handling hover effects, and handling clicks.
 class Card{
     /**
@@ -38,6 +81,9 @@ class Card{
         this.y = undefined; // y will be determined by renderCards based on pos and hover state
         this.scale = 1; // default scale, can be modified for hover effect
         this.isDragging = false; // flag to indicate if the card is being dragged
+        this.shape = new Shape(this.x, this.y, 'rectangle', {width: 70, height: 100}, 'gray'); // default shape for rendering; actual position and size will be set in renderCards
+        this.textShape = new Shape(this.x + 5, this.y + 50, 'text', {text: this.type, font: '12px Arial'}, 'white'); // shape for rendering text; position will be set in renderCards
+        this.costShape = new Shape(this.x + 5, this.y + 70, 'text', {text: `Cost: ${this.cost}`, font: '12px Arial'}, 'white'); // shape for rendering cost; position will be set in renderCards
     }
     renderCards() {
         const ctx = gameArea.canvas.getContext('2d');
@@ -61,12 +107,24 @@ class Card{
         }
         // Use this.y if set, otherwise default to 560
         const y = this.y !== undefined ? this.y : 560 + (CARD_HEIGHT - h);
-        ctx.fillStyle = 'gray';
-        ctx.fillRect(this.x, y, w, h);
-        ctx.fillStyle = 'white';
-        ctx.fillText(this.type, this.x + 5, y + h / 2 + 5);
+        this.shape.x = this.x;
+        this.shape.y = y;
+        this.shape.properties.width = w;
+        this.shape.properties.height = h;
+        this.textShape.x = this.x + 5;
+        this.textShape.y = y + h / 2 + 5;
+        this.textShape.properties.text = this.type;
+        this.textShape.properties.font = `${12 * this.scale}px Arial`;
+        this.shape.render(ctx);
+        this.textShape.render(ctx);
         if (typeof this.pos === 'number') {
-            ctx.fillText(`Cost: ${this.cost}`, this.x + 5, y + h / 2 + 20);
+            this.costShape.visible = true;
+            this.costShape.properties.text = `Cost: ${this.cost}`;
+            this.costShape.x = this.x + 5;
+            this.costShape.y = y + h / 2 + 20;
+            this.costShape.render(ctx);
+        } else {
+            this.costShape.visible = false;
         }
     }
     onHover(){
@@ -116,10 +174,10 @@ class Card{
 class Unit{
     /**
      * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] internally, representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
-     * @param {object} stats 
-     * @param {string} id 
-     * @param {number} x 
-     * @param {number} y 
+     * @param {object} stats // the stats of the unit, should correspond to the unitStats object imported from cards.js
+     * @param {string} id // the id of the unit, should be in the format 'team_type_number' (e.g. 'blue_knight_1')
+     * @param {number} x // the x coordinate of the unit's position on the canvas
+     * @param {number} y // the y coordinate of the unit's position on the canvas
      */
     constructor(stats,id,x,y){
         this.id = id
@@ -128,6 +186,7 @@ class Unit{
         this.stats = stats
         this.active = true
         this.radius = cards[this.type].size ? cards[this.type].size : 15; // default radius if size is undefined
+        this.shape = new Shape(x,y,'circle',{radius: this.radius}, this.checkColor(this.type));
         print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
         // Drawing will be handled by drawDeckOnCanvas
     }
@@ -166,7 +225,39 @@ const gameArea = {
         x: 20,
         y: 20,
         width: 400,
-        height: 500
+        height: 500,
+        color: 'green',
+        shape: new Shape(20,20,'rectangle',{width:400,height:500},'green'),
+        top: {
+            x: 20,
+            y: 20,
+            width: 400,
+            height: 220
+        },
+        bottom: {
+            x: 20,
+            y: 300,
+            width: 400,
+            height: 220
+        },
+        river: {
+            x: 20,
+            y: 240,
+            width: 400,
+            height: 60,
+            color: 'lightblue',
+            shape: new Shape(20,240,'rectangle',{width:400,height:60},'lightblue')
+        },
+        bridges: {
+            x1: 80,
+            x2: 300,
+            y: 230,
+            width: 40,
+            height: 80,
+            color: 'saddlebrown',
+            leftBridge: new Shape(80,230,'rectangle',{width:40,height:80},'saddlebrown'),
+            rightBridge: new Shape(300,230,'rectangle',{width:40,height:80},'saddlebrown')
+        }
     },
     activeUnits: [],
     start : function() {
@@ -210,15 +301,15 @@ function drawDeckOnCanvas(team) {
     ctx.clearRect(0,20,20,500);
     ctx.clearRect(420,20,20,500);
     // draw the playfield with a fixed colour so it's always visible
-    ctx.fillStyle = 'green';
-    ctx.fillRect(gameArea.playField.x, gameArea.playField.y,
-                 gameArea.playField.width, gameArea.playField.height);
+    gameArea.playField.shape.render(ctx);
+    // draw river
+    gameArea.playField.river.shape.render(ctx);
+    // draw bridges
+    gameArea.playField.bridges.leftBridge.render(ctx);
+    gameArea.playField.bridges.rightBridge.render(ctx);
     // Draw active units on top of the playfield
     gameArea.activeUnits.forEach(unit => {
-        ctx.fillStyle = unit.checkColor(unit.type);
-        ctx.beginPath(); 
-        ctx.arc(unit.pos[0], unit.pos[1], unit.radius, 0, 2 * Math.PI); 
-        ctx.fill();
+        unit.shape.render(ctx);
     });
 
     // Draw elixir display
@@ -295,12 +386,12 @@ function getMousePos(canvas, evt) {
 }
 function checkCardRequirements(card,pos,player){
     let canAfford = player.elixir >= card.cost
-    let inPlayField = pos.x >= gameArea.playField.x && pos.x <= gameArea.playField.x + gameArea.playField.width &&
-                      pos.y >= gameArea.playField.y && pos.y <= gameArea.playField.y + gameArea.playField.height
+    let inPlayField = pos.x >= gameArea.playField.bottom.x && pos.x <= gameArea.playField.bottom.x + gameArea.playField.bottom.width &&
+                      pos.y >= gameArea.playField.bottom.y && pos.y <= gameArea.playField.bottom.y + gameArea.playField.bottom.height
     if (!canAfford){
         alert('Not enough elixir!');
     } else if (!inPlayField){
-        alert('Card must be played within the playfield!');
+        alert('Card must be played within valid area!');
     }
     return canAfford && inPlayField;
 }
