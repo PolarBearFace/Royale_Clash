@@ -4,8 +4,7 @@ Currently to play: You will first need a GitHub account. Go to vscode.dev (sign 
 
 <strong>ROADMAP:</strong>
 <ul>
-    <li>Unit rendering</li>
-    <li>Unit movement basics</li>
+    <li>Unit movement basics (begun)</li>
     <li>Enemy units and proper pathfinding updating</li>
     <li>Automatic enemy unit placement (enemy player AI/logic)</li>
     <li>Win/lose conditions</li>
