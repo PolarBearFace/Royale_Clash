@@ -469,21 +469,21 @@ function chooseTargets(unit){
     let targets = [];
     if (unitStats[unit.type].type.ground){
         // if it's a ground unit, add the bridge end as a target if it's not flying and not already past it
-        if (unit.pos[1] < gameArea.playField.bridges.y && unit.id.startsWith('blue')){
+        if (unit.pos[1] > gameArea.playField.bridges.y && unit.id.startsWith('blue')){
             if (unit.pos[0] < gameArea.playField.width / 2){
-                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
-                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
+                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
+                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
             } else {
-                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
-                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
+                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
+                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
             }
-        } else if (unit.pos[1] > gameArea.playField.bridges.y + gameArea.playField.bridges.height && unit.id.startsWith('red')){
+        } else if (unit.pos[1] < gameArea.playField.bridges.y + gameArea.playField.bridges.height && unit.id.startsWith('red')){
             if (unit.pos[0] < gameArea.playField.width / 2){
-                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
-                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
+                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
+                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
             } else {
-                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y});
-                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height});
+                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
+                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
             }
         }
     }

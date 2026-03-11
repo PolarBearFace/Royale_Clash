@@ -141,13 +141,21 @@ export const unitStats = {
         damage: 50,
         speed: null,
         attackSpeed: 0.9,
-        range: 0
+        range: 100,
+        type: {
+            melee: false,
+            ground: true
+        }
     },
     princessTower: {
         maxHP: 1400,
         damage: 50,
         speed: null,
         attackSpeed: 1.0,
-        range: 0
+        range: 100,
+        type: {
+            melee: false,
+            ground: true
+        }
     }
 }
