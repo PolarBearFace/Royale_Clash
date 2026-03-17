@@ -14,7 +14,7 @@ import {cards, unitStats} from './cards.js';
 const gameState = {
     lastTime: 0,
     maxElixir: 10,
-    elixirRegenRate: 0.35, // elixir per second
+    elixirRegenRate: 10.35, // elixir per second
 }
 
 let pos = {x: 0, y: 0}; // global mouse position
@@ -164,6 +164,7 @@ class Card{
                 this.y = undefined; // reset to default position
                 for (let i = 0; i<cards[this.type].quantity; i++){
                     gameArea.activeUnits.push(new Unit(this.stats,`${this.team}_${this.type}_${gameArea.activeUnits.length+1}`,pos.x + i * 15,pos.y));
+                    gameArea.activeUnits[gameArea.activeUnits.length-1].ai.targets = getInitialTargets(gameArea.activeUnits[gameArea.activeUnits.length-1]);
                 }
                 updateDeckPositions('blue');
                 renderDecks();
@@ -224,6 +225,22 @@ class Unit{
             color = 'red';
         }
         return color;
+    }
+}
+class Target{
+    /**
+     * Used to store a target a unit can use. Only used for the Unit.target list
+     * @param {number} x // the x coordinate of the target on the canvas
+     * @param {number} y // the y coordinate of the target on the canvas
+     * @param {string} id // the id of the unit (team_type_number), structure ({team}{TowerType}{Type}), or bridge (bridge{Side}{Start/End})
+     * @param {string} type // the target type, either 'unit', 'tower', or 'bridge'
+     */
+    constructor(x,y,id,type){
+        this.x = x;
+        this.y = y;
+        this.id = id;
+        this.type = type; // 'unit', 'tower', 'bridge'
+        this.active = true; // whether the target is still usable, e.g. if a unit is on a bridge, the end it entered from is set to inactive so it doesn't go back around, but keeps that it's still on the bridge
     }
 }
 let blueDeck = []
@@ -301,7 +318,7 @@ function startGame(){
 
     renderDecks();
     // Add castles here:
-    
+    gameArea.activeUnits.push(new Unit(unitStats.knight,'red_knight_1',gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y + 80))
     requestAnimationFrame(gameLoop);
 }
 let currentUnits = []
@@ -454,87 +471,64 @@ function updateLogic(deltaTime) {
             unit.pos[1] += direction * unit.stats.speed * deltaTime;
             unit.shape.x = unit.pos[0];
             unit.shape.y = unit.pos[1];
-            chooseTargets(unit); // Update targets for the unit based on its new position
         }
     });
 }
 
 // AI logic for units
-/**
- * Returns a list of targets for the given unit in order of where it is pathfinding to. It will have a tower or other unit at the end, and a the bridge ends before it if it is not a flying unit.
- * @param {object} unit 
- * @return {Array}
- */
-function chooseTargets(unit){
+function getInitialTargets(unit){
     let targets = [];
-    if (unitStats[unit.type].type.ground){
-        // if it's a ground unit, add the bridge end as a target if it's not flying and not already past it
-        if (unit.pos[1] > gameArea.playField.bridges.y && unit.id.startsWith('blue')){
-            if (unit.pos[0] < gameArea.playField.width / 2){
-                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
-                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
-            } else {
-                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
-                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
-            }
-        } else if (unit.pos[1] < gameArea.playField.bridges.y + gameArea.playField.bridges.height && unit.id.startsWith('red')){
-            if (unit.pos[0] < gameArea.playField.width / 2){
-                targets.push({type: 'bridgeLeftEnd', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
-                targets.push({type: 'bridgeLeftStart', x: gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
-            } else {
-                targets.push({type: 'bridgeRightEnd', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y, passed: false});
-                targets.push({type: 'bridgeRightStart', x: gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, y: gameArea.playField.bridges.y + gameArea.playField.bridges.height, passed: false});
+    if (unit.team === 'blue'){
+        if (getClosestUnit(unit) != null){
+            closest = getClosestUnit(unit);
+            if (closest != null){
+                if (closest.pos[1] < gameArea.playField.river.y + gameArea.playField.river.height && getDistance(unit.pos, closest.pos) < 100){
+                    targets.push(new Target(closest.pos[0], closest.pos[1], closest.id, 'unit'));
+                }
             }
         }
-    }
-    if (unit.id.startsWith('blue')){
-        const currentX = unit.pos[0];
-        if (currentX < gameArea.playField.x + gameArea.playField.width / 2){
-            if (redPlayer.castles[0]){
-                targets.push({type: 'redPrincessTowerLeft', x: gameArea.playField.x, y: gameArea.playField.y + gameArea.playField.height/2});
+        if (unit.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height){
+            if (unit.pos[0] < gameArea.playField.width/2){
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y,'bridgeLeftEnd', 'bridge'));
+            } else {
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y,'bridgeRightEnd', 'bridge'));
+
             }
-        } else if (currentX > gameArea.playField.x + gameArea.playField.width / 2){
+        }
+        if (unit.pos[0] < gameArea.playField.width/2){
+            if (redPlayer.castles[0]){
+                targets.push(new Target(60, 60, 'red_princess_left', 'tower'));
+            }
+        } else {
             if (redPlayer.castles[2]){
-                targets.push({type: 'redPrincessTowerRight', x: gameArea.playField.x + gameArea.playField.width, y: gameArea.playField.y + gameArea.playField.height/2});
+                targets.push(new Target(340, 60, 'red_princess_right', 'tower'));
             }
         }
         if (redPlayer.castles[1]){
-            targets.push({type: 'redKingTower', x: gameArea.playField.x + gameArea.playField.width/2, y: gameArea.playField.y + gameArea.playField.height/2});
+            targets.push(new Target(200, 40, 'red_king', 'tower'));
         }
+        print(`Unit ${unit.id} has targets: ${targets.map(t => t.id).join(', ')}`);
+        return targets;
     } else {
-        const currentX = unit.pos[0];
-        if (currentX < gameArea.playField.x + gameArea.playField.width / 2){
-            if (bluePlayer.castles[0]){
-                targets.push({type: 'bluePrincessTowerLeft', x: gameArea.playField.x, y: gameArea.playField.y + gameArea.playField.height/2});
-            }
-        } else if (currentX > gameArea.playField.x + gameArea.playField.width / 2){
-            if (bluePlayer.castles[2]){
-                targets.push({type: 'bluePrincessTowerRight', x: gameArea.playField.x + gameArea.playField.width, y: gameArea.playField.y + gameArea.playField.height/2});
-            }
-        }
-        if (bluePlayer.castles[1]){
-            targets.push({type: 'blueKingTower', x: gameArea.playField.x + gameArea.playField.width/2, y: gameArea.playField.y + gameArea.playField.height/2});
-        }
+        print('red unit spawned - no AI yet');
+        return [];
     }
-    const closestUnit = getClosestUnit(unit);
-    if (closestUnit){
-        if (getDistance(unit.pos, closestUnit.pos) < getDistance(unit.pos, [targets[0].x, targets[0].y])){
-            targets.unshift({type: 'unit', x: closestUnit.pos[0], y: closestUnit.pos[1]});
-        }
-    }
-    return targets
 }
+
 /**
  * @param {object} unit 
- * @returns {Array} the closest enemy unit to the given unit, or null if there are no enemy units
+ * @returns {object} the closest enemy unit to the given unit, or null if there are no enemy units
  */
 function getClosestUnit(unit){
     if (unit.team === 'blue'){
         const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'red' && u.active);
-        if (enemyUnits.length === 0) return null;
+        if (enemyUnits.length === 0) {return null;}
         let closest = enemyUnits[0];
         let closestDist = Math.hypot(unit.pos[0] - closest.pos[0], unit.pos[1] - closest.pos[1]);
-        for (let i = 1; i < enemyUnits.length; i++){
+        if (enemyUnits.length == 1) {return closest;}
+        for (let i = 0; i < enemyUnits.length; i++){
             const dist = getDistance(unit.pos, enemyUnits[i].pos);
             if (dist < closestDist){
                 closest = enemyUnits[i];
@@ -627,7 +621,6 @@ gameArea.canvas.addEventListener('mouseleave', function() {
 
 // render initial decks
 startGame()
-console.log('game started')
 renderDecks();
 /**
  * Prints a message to the console and sends it to the server for logging. Used since I'm used to Python. (console.log still has normal functionality)
@@ -636,5 +629,3 @@ renderDecks();
 function print(string){
     console.log(string);
 }
-
-print('all code loaded');
