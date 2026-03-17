@@ -10,16 +10,16 @@ function randomInt(min, max) {
 
 // Will only work if using the server.js infrastructure. Otherwise, it will fail. May change either instructions or change back later
 // Will fail using file:// protocol due to CORS issues with fetch, so only use with server.js
-import {cards, unitStats} from './cards.js';
+import { cards, unitStats } from './cards.js';
 const gameState = {
     lastTime: 0,
     maxElixir: 10,
     elixirRegenRate: 10.35, // elixir per second
 }
 
-let pos = {x: 0, y: 0}; // global mouse position
+let pos = { x: 0, y: 0 }; // global mouse position
 //Used to make rendering easier, since it's kinda difficult right now to manage the rendering of units and whatnot
-class Shape{
+class Shape {
     /**
      * Creates a shape instance with the given x and y coordinates, shape type, properties, and color. The shape will be drawn on the canvas based on its type and properties. The properties parameter is an object that can contain different keys depending on the shape type (e.g. radius for circles, width and height for rectangles, etc.). The color parameter is a string representing the color to draw the shape.
      * @param {number} x 
@@ -28,7 +28,7 @@ class Shape{
      * @param {object} properties 
      * @param {string} color 
      */
-    constructor(x,y,shape='circle',properties={},color='black'){
+    constructor(x, y, shape = 'circle', properties = {}, color = 'black') {
         this.x = x;
         this.y = y;
         this.shape = shape;
@@ -37,23 +37,23 @@ class Shape{
         this.color = color;
         this.visible = true; // flag to control whether the shape should be rendered; can be used for things like hover effects without needing to remove the shape from the game state
     }
-    render(ctx){
+    render(ctx) {
         if (!this.visible) return; // skip rendering if shape is not visible
         ctx.fillStyle = this.color;
-        if (this.shape === 'circle'){
+        if (this.shape === 'circle') {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.properties.radius || 10, 0, 2 * Math.PI);
             ctx.fill();
-        } else if (this.shape === 'rectangle'){
+        } else if (this.shape === 'rectangle') {
             ctx.fillRect(this.x, this.y, this.properties.width || 20, this.properties.height || 10);
-        } else if (this.shape === 'line'){
+        } else if (this.shape === 'line') {
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
             ctx.lineTo(this.properties.x2 || this.x + 20, this.properties.y2 || this.y + 20);
             ctx.stroke();
-        }else if (this.shape === 'text'){
+        } else if (this.shape === 'text') {
             ctx.font = this.properties.font || '16px Arial';
-            ctx.fillText(this.properties.text || '', this.x, this.y); 
+            ctx.fillText(this.properties.text || '', this.x, this.y);
         } else {
             // default to a small square if shape type is unrecognized
             ctx.fillRect(this.x, this.y, 10, 10);
@@ -61,13 +61,13 @@ class Shape{
     }
 }
 // Card class is a card in that can be used by a player. It stores what card it represents, which team it belongs to, its position (deck, next, 1-4), and its x and y coordinates for rendering on the canvas. It has methods for rendering itself on the canvas, handling hover effects, and handling clicks.
-class Card{
+class Card {
     /**
      * Uses card type or card object to create a card instance. If given a card object, it will try to find the corresponding key in the cards object. If it can't find it, it will use 'unknown' as the type and 0 as the cost.
      * @param {object | string} type 
      * @param {string} team 
      */
-    constructor(type,team){
+    constructor(type, team) {
         // Normalize type to a string key (accept either a key or the card object)
         if (typeof type === 'string') {
             this.type = type;
@@ -86,9 +86,9 @@ class Card{
         this.y = undefined; // y will be determined by renderCards based on pos and hover state
         this.scale = 1; // default scale, can be modified for hover effect
         this.isDragging = false; // flag to indicate if the card is being dragged
-        this.shape = new Shape(this.x, this.y, 'rectangle', {width: 70, height: 100}, 'gray'); // default shape for rendering; actual position and size will be set in renderCards
-        this.textShape = new Shape(this.x + 5, this.y + 50, 'text', {text: this.type, font: '12px Arial'}, 'white'); // shape for rendering text; position will be set in renderCards
-        this.costShape = new Shape(this.x + 5, this.y + 70, 'text', {text: `Cost: ${this.cost}`, font: '12px Arial'}, 'white'); // shape for rendering cost; position will be set in renderCards
+        this.shape = new Shape(this.x, this.y, 'rectangle', { width: 70, height: 100 }, 'gray'); // default shape for rendering; actual position and size will be set in renderCards
+        this.textShape = new Shape(this.x + 5, this.y + 50, 'text', { text: this.type, font: '12px Arial' }, 'white'); // shape for rendering text; position will be set in renderCards
+        this.costShape = new Shape(this.x + 5, this.y + 70, 'text', { text: `Cost: ${this.cost}`, font: '12px Arial' }, 'white'); // shape for rendering cost; position will be set in renderCards
     }
     renderCards() {
         const ctx = gameArea.canvas.getContext('2d');
@@ -132,14 +132,14 @@ class Card{
             this.costShape.visible = false;
         }
     }
-    onHover(){
+    onHover() {
         this.y = 540; // move card up on hover
     }
-    onHoverExit(){
+    onHoverExit() {
         this.y = undefined; // reset to default position
     }
-    onClick(){
-        if (selectedCard === null){
+    onClick() {
+        if (selectedCard === null) {
             // pos is set globally in click handler
             pos = getMousePos(gameArea.canvas, event);
             const scale = typeof this.pos === 'number' ? 1 : 0.5;
@@ -151,20 +151,20 @@ class Card{
                 selectedCard = this;
                 this.isDragging = false;
             }
-        } else if (selectedCard === this){
+        } else if (selectedCard === this) {
             selectedCard = null;
             this.isDragging = false;
-            if (checkCardRequirements(this,pos,bluePlayer)){
+            if (checkCardRequirements(this, pos, bluePlayer)) {
                 bluePlayer.elixir -= this.cost;
-                let card = blueDeck[this.pos-1]
-                blueDeck.splice(this.pos-1, 1); // remove card from deck array
+                let card = blueDeck[this.pos - 1]
+                blueDeck.splice(this.pos - 1, 1); // remove card from deck array
                 blueDeck.push(card); // add card back to end of deck array
                 this.pos = 'deck'; // remove card from hand
                 this.x = 20; // reset to base x; actual position will be set by rollDeck when drawn
                 this.y = undefined; // reset to default position
-                for (let i = 0; i<cards[this.type].quantity; i++){
-                    gameArea.activeUnits.push(new Unit(this.stats,`${this.team}_${this.type}_${gameArea.activeUnits.length+1}`,pos.x + i * 15,pos.y));
-                    gameArea.activeUnits[gameArea.activeUnits.length-1].ai.targets = getInitialTargets(gameArea.activeUnits[gameArea.activeUnits.length-1]);
+                for (let i = 0; i < cards[this.type].quantity; i++) {
+                    gameArea.activeUnits.push(new Unit(this.stats, `${this.team}_${this.type}_${gameArea.activeUnits.length}`, pos.x + i * 15, pos.y));
+                    gameArea.activeUnits[gameArea.activeUnits.length - 1].ai.targets = getInitialTargets(gameArea.activeUnits[gameArea.activeUnits.length - 1]);
                 }
                 updateDeckPositions('blue');
                 renderDecks();
@@ -177,7 +177,7 @@ class Card{
     }
 }
 // Unit class is a unit on the play field. It has stats, an id for debugging purposes, a position, a size, whether it's alive, and a type.
-class Unit{
+class Unit {
     /**
      * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] internally, representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
      * @param {object} stats // the stats of the unit, should correspond to the unitStats object imported from cards.js
@@ -185,18 +185,18 @@ class Unit{
      * @param {number} x // the x coordinate of the unit's position on the canvas
      * @param {number} y // the y coordinate of the unit's position on the canvas
      */
-    constructor(stats,id,x,y){
+    constructor(stats, id, x, y) {
         this.id = id
         this.type = id.split('_')[1]
         this.team = id.split('_')[0]
-        this.pos = [x,y]
+        this.pos = [x, y]
         this.stats = stats
         this.ai = {
             targets: []
         }
         this.active = true
         this.radius = cards[this.type].size ? cards[this.type].size : 15; // default radius if size is undefined
-        this.shape = new Shape(x,y,'circle',{radius: this.radius}, this.checkColor(this.type));
+        this.shape = new Shape(x, y, 'circle', { radius: this.radius }, this.checkColor(this.type));
         //print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
         // Drawing will be handled by drawDeckOnCanvas
     }
@@ -205,29 +205,29 @@ class Unit{
      * @param {string} type 
      * @returns {string} color to draw the unit based on its type (currently just checks if it's a knight or not, may need to be expanded in the future)
      */
-    checkColor(type){
+    checkColor(type) {
         let color = 'black';
-        if (type == 'knight'){
+        if (type == 'knight') {
             color = 'gray';
-        } else if (type == 'minipekka'){
+        } else if (type == 'minipekka') {
             color = 'purple';
-        } else if (type == 'skeleton'){
+        } else if (type == 'skeleton') {
             color = 'white';
-        } else if (type == 'flyingMachine'){
+        } else if (type == 'flyingMachine') {
             color = 'brown';
-        } else if (type == 'wizard'){
+        } else if (type == 'wizard') {
             color = 'orange';
-        } else if (type == 'prince'){
+        } else if (type == 'prince') {
             color = 'gold';
-        } else if (type == 'archers'){
+        } else if (type == 'archers') {
             color = 'pink';
-        } else if (type == 'valkyrie'){
+        } else if (type == 'valkyrie') {
             color = 'red';
         }
         return color;
     }
 }
-class Target{
+class Target {
     /**
      * Used to store a target a unit can use. Only used for the Unit.target list
      * @param {number} x // the x coordinate of the target on the canvas
@@ -235,7 +235,7 @@ class Target{
      * @param {string} id // the id of the unit (team_type_number), structure ({team}{TowerType}{Type}), or bridge (bridge{Side}{Start/End})
      * @param {string} type // the target type, either 'unit', 'tower', or 'bridge'
      */
-    constructor(x,y,id,type){
+    constructor(x, y, id, type) {
         this.x = x;
         this.y = y;
         this.id = id;
@@ -246,14 +246,14 @@ class Target{
 let blueDeck = []
 let redDeck = []
 const gameArea = {
-    canvas : document.createElement("canvas"),
-    playField : {
+    canvas: document.createElement("canvas"),
+    playField: {
         x: 20,
         y: 20,
         width: 400,
         height: 500,
         color: 'green',
-        shape: new Shape(20,20,'rectangle',{width:400,height:500},'green'),
+        shape: new Shape(20, 20, 'rectangle', { width: 400, height: 500 }, 'green'),
         top: {
             x: 20,
             y: 20,
@@ -272,7 +272,7 @@ const gameArea = {
             width: 400,
             height: 60,
             color: 'lightblue',
-            shape: new Shape(20,240,'rectangle',{width:400,height:60},'lightblue')
+            shape: new Shape(20, 240, 'rectangle', { width: 400, height: 60 }, 'lightblue')
         },
         bridges: {
             x1: 80,
@@ -281,12 +281,12 @@ const gameArea = {
             width: 40,
             height: 80,
             color: 'saddlebrown',
-            leftBridge: new Shape(80,230,'rectangle',{width:40,height:80},'saddlebrown'),
-            rightBridge: new Shape(300,230,'rectangle',{width:40,height:80},'saddlebrown')
+            leftBridge: new Shape(80, 230, 'rectangle', { width: 40, height: 80 }, 'saddlebrown'),
+            rightBridge: new Shape(300, 230, 'rectangle', { width: 40, height: 80 }, 'saddlebrown')
         }
     },
     activeUnits: [],
-    start : function() {
+    start: function () {
         this.canvas.width = 440;
         this.canvas.height = 680;
         this.context = this.canvas.getContext("2d");
@@ -297,19 +297,19 @@ const gameArea = {
 const redPlayer = {
     elixir: 0,
     crowns: 0,
-    castles: [true,true,true], // left princess, king, right princess; true means standing, false means destroyed
+    castles: [true, true, true], // left princess, king, right princess; true means standing, false means destroyed
     castleUnits: []
 }
 const bluePlayer = {
     elixir: 0,
     crowns: 0,
-    castles: [true,true,true], // left princess, king, right princess; true means standing, false means destroyed
+    castles: [true, true, true], // left princess, king, right princess; true means standing, false means destroyed
     castleUnits: []
 }
-function startGame(){
+function startGame() {
     gameArea.start();
-    blueDeck = [new Card(cards.knight,'blue'),new Card(cards.minipekka,'blue'),new Card(cards.skeleton,'blue'),new Card(cards.flyingMachine,'blue'),new Card(cards.wizard,'blue'),new Card(cards.prince,'blue'),new Card(cards.archers,'blue'),new Card(cards.valkyrie,'blue')];
-    redDeck = [new Card(cards.knight,'red'),new Card(cards.minipekka,'red'),new Card(cards.skeleton,'red'),new Card(cards.flyingMachine,'red'),new Card(cards.wizard,'red'),new Card(cards.prince,'red'),new Card(cards.archers,'red'),new Card(cards.valkyrie,'red')];
+    blueDeck = [new Card(cards.knight, 'blue'), new Card(cards.minipekka, 'blue'), new Card(cards.skeleton, 'blue'), new Card(cards.flyingMachine, 'blue'), new Card(cards.wizard, 'blue'), new Card(cards.prince, 'blue'), new Card(cards.archers, 'blue'), new Card(cards.valkyrie, 'blue')];
+    redDeck = [new Card(cards.knight, 'red'), new Card(cards.minipekka, 'red'), new Card(cards.skeleton, 'red'), new Card(cards.flyingMachine, 'red'), new Card(cards.wizard, 'red'), new Card(cards.prince, 'red'), new Card(cards.archers, 'red'), new Card(cards.valkyrie, 'red')];
 
     blueDeck = rollDeck('blue');
     drawDeckOnCanvas('blue');
@@ -318,11 +318,11 @@ function startGame(){
 
     renderDecks();
     // Add castles here:
-    gameArea.activeUnits.push(new Unit(unitStats.knight,'red_knight_1',gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y + 80))
+    gameArea.activeUnits.push(new Unit(unitStats.knight, 'red_knight_1', gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y + 80))
     requestAnimationFrame(gameLoop);
 }
 let currentUnits = []
-function renderGame(){
+function renderGame() {
     const ctx = gameArea.canvas.getContext('2d');
     ctx.clearRect(0, 0, gameArea.canvas.width, gameArea.canvas.height);
     drawDeckOnCanvas('blue');
@@ -335,9 +335,9 @@ function drawDeckOnCanvas(team) {
     // the wrong fillStyle and made the playfield blend with the canvas background.
     // the height of the deck region is roughly 160px at the bottom of a 680px canvas.
     ctx.clearRect(0, 520, gameArea.canvas.width, gameArea.canvas.height - 520);
-    ctx.clearRect(0,0,gameArea.canvas.width,20);
-    ctx.clearRect(0,20,20,500);
-    ctx.clearRect(420,20,20,500);
+    ctx.clearRect(0, 0, gameArea.canvas.width, 20);
+    ctx.clearRect(0, 20, 20, 500);
+    ctx.clearRect(420, 20, 20, 500);
     // draw the playfield with a fixed colour so it's always visible
     gameArea.playField.shape.render(ctx);
     // draw river
@@ -364,11 +364,11 @@ function drawDeckOnCanvas(team) {
  * @param {string} team 
  * @returns the randomized deck for the given team, also sets the pos property of each card in the deck based on its position in the array (1-4 for the first 4 cards, 'next' for the 5th card, and 'deck' for the rest)
  */
-function rollDeck(team){
+function rollDeck(team) {
     let newDeck = [];
     let oldDeck = team == 'blue' ? blueDeck : redDeck;
     const originalCount = oldDeck.length;
-    for (let i = 0; i < originalCount; i++){
+    for (let i = 0; i < originalCount; i++) {
         const idx = randomInt(0, oldDeck.length);
         const randomCard = oldDeck.splice(idx, 1)[0];
         newDeck.push(randomCard);
@@ -379,11 +379,11 @@ function rollDeck(team){
         card.pos = 'deck';
     }
 
-    if (newDeck.length > 0){newDeck[0].pos = 1;}
-    if (newDeck.length > 1){newDeck[1].pos = 2;}
-    if (newDeck.length > 2){newDeck[2].pos = 3;}
-    if (newDeck.length > 3){newDeck[3].pos = 4;}
-    if (newDeck.length > 4){newDeck[4].pos = 'next';}
+    if (newDeck.length > 0) { newDeck[0].pos = 1; }
+    if (newDeck.length > 1) { newDeck[1].pos = 2; }
+    if (newDeck.length > 2) { newDeck[2].pos = 3; }
+    if (newDeck.length > 3) { newDeck[3].pos = 4; }
+    if (newDeck.length > 4) { newDeck[4].pos = 'next'; }
 
     // update global variable to the freshly shuffled deck
     if (team === 'blue') {
@@ -422,13 +422,13 @@ function getMousePos(canvas, evt) {
         y: evt.clientY - rect.top
     };
 }
-function checkCardRequirements(card,pos,player){
+function checkCardRequirements(card, pos, player) {
     let canAfford = player.elixir >= card.cost
     let inPlayField = pos.x >= gameArea.playField.bottom.x && pos.x <= gameArea.playField.bottom.x + gameArea.playField.bottom.width &&
-                      pos.y >= gameArea.playField.bottom.y && pos.y <= gameArea.playField.bottom.y + gameArea.playField.bottom.height
+        pos.y >= gameArea.playField.bottom.y && pos.y <= gameArea.playField.bottom.y + gameArea.playField.bottom.height
     return canAfford && inPlayField;
 }
-function updateDeckPositions(team){
+function updateDeckPositions(team) {
     const deck = team === 'blue' ? blueDeck : redDeck;
     for (let i = 0; i < deck.length; i++) {
         if (i < 4) {
@@ -446,7 +446,7 @@ function updateDeckPositions(team){
 function gameLoop(timestamp) {
     let deltaTime = (timestamp - gameState.lastTime) / 1000; // convert to seconds
     gameState.lastTime = timestamp;
-    if (deltaTime > 0.1) {deltaTime = 0.1;} // cap deltaTime to prevent big jumps
+    if (deltaTime > 0.1) { deltaTime = 0.1; } // cap deltaTime to prevent big jumps
     updateLogic(deltaTime);
     renderGame();
     requestAnimationFrame(gameLoop);
@@ -476,37 +476,35 @@ function updateLogic(deltaTime) {
 }
 
 // AI logic for units
-function getInitialTargets(unit){
+function getInitialTargets(unit) {
     let targets = [];
-    if (unit.team === 'blue'){
-        if (getClosestUnit(unit) != null){
-            closest = getClosestUnit(unit);
-            if (closest != null){
-                if (closest.pos[1] < gameArea.playField.river.y + gameArea.playField.river.height && getDistance(unit.pos, closest.pos) < 100){
-                    targets.push(new Target(closest.pos[0], closest.pos[1], closest.id, 'unit'));
-                }
+    if (unit.team === 'blue') {
+        if (getClosestUnit(unit) != null) {
+            let closest = getClosestUnit(unit);
+            if (closest.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height && getDistance(unit.pos, closest.pos) < 100) {
+                targets.push(new Target(closest.pos[0], closest.pos[1], closest.id, 'unit'));
             }
         }
-        if (unit.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height){
-            if (unit.pos[0] < gameArea.playField.width/2){
-                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
-                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y,'bridgeLeftEnd', 'bridge'));
+        if (unit.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height) {
+            if (unit.pos[0] < gameArea.playField.width / 2) {
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeLeftEnd', 'bridge'));
             } else {
-                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
-                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width/2, gameArea.playField.bridges.y,'bridgeRightEnd', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
 
             }
         }
-        if (unit.pos[0] < gameArea.playField.width/2){
-            if (redPlayer.castles[0]){
+        if (unit.pos[0] < gameArea.playField.width / 2) {
+            if (redPlayer.castles[0]) {
                 targets.push(new Target(60, 60, 'red_princess_left', 'tower'));
             }
         } else {
-            if (redPlayer.castles[2]){
+            if (redPlayer.castles[2]) {
                 targets.push(new Target(340, 60, 'red_princess_right', 'tower'));
             }
         }
-        if (redPlayer.castles[1]){
+        if (redPlayer.castles[1]) {
             targets.push(new Target(200, 40, 'red_king', 'tower'));
         }
         print(`Unit ${unit.id} has targets: ${targets.map(t => t.id).join(', ')}`);
@@ -521,16 +519,16 @@ function getInitialTargets(unit){
  * @param {object} unit 
  * @returns {object} the closest enemy unit to the given unit, or null if there are no enemy units
  */
-function getClosestUnit(unit){
-    if (unit.team === 'blue'){
+function getClosestUnit(unit) {
+    if (unit.team === 'blue') {
         const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'red' && u.active);
-        if (enemyUnits.length === 0) {return null;}
+        if (enemyUnits.length === 0) { return null; }
         let closest = enemyUnits[0];
-        let closestDist = Math.hypot(unit.pos[0] - closest.pos[0], unit.pos[1] - closest.pos[1]);
-        if (enemyUnits.length == 1) {return closest;}
-        for (let i = 0; i < enemyUnits.length; i++){
+        let closestDist = getDistance(unit.pos, enemyUnits[0].pos);
+        if (enemyUnits.length == 1) { return closest; }
+        for (let i = 0; i < enemyUnits.length; i++) {
             const dist = getDistance(unit.pos, enemyUnits[i].pos);
-            if (dist < closestDist){
+            if (dist < closestDist) {
                 closest = enemyUnits[i];
                 closestDist = dist;
             }
@@ -540,10 +538,11 @@ function getClosestUnit(unit){
         const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'blue' && u.active);
         if (enemyUnits.length === 0) return null;
         let closest = enemyUnits[0];
-        let closestDist = Math.hypot(unit.pos[0] - closest.pos[0], unit.pos[1] - closest.pos[1]);
-        for (let i = 1; i < enemyUnits.length; i++){
+        let closestDist = getDistance(unit.pos, enemyUnits[0].pos);
+        if (enemyUnits.length == 1) { return closest; }
+        for (let i = 1; i < enemyUnits.length; i++) {
             const dist = getDistance(unit.pos, enemyUnits[i].pos);
-            if (dist < closestDist){
+            if (dist < closestDist) {
                 closest = enemyUnits[i];
                 closestDist = dist;
             }
@@ -552,14 +551,14 @@ function getClosestUnit(unit){
     }
 }
 /**
- * @param {Array} pos1 
- * @param {Array} pos2 
+ * @param {Array<number>} pos1 
+ * @param {Array<number>} pos2 
  * @returns {number} the distance between the two positions, where each position is an array [x, y]
  */
-function getDistance(pos1, pos2){
+function getDistance(pos1, pos2) {
     return Math.hypot(pos1[0] - pos2[0], pos1[1] - pos2[1]);
 }
-gameArea.canvas.addEventListener('mousemove', function(evt) {
+gameArea.canvas.addEventListener('mousemove', function (evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
     pos = mousePos;
     let newHoveredCard = null;
@@ -598,7 +597,7 @@ gameArea.canvas.addEventListener('mousemove', function(evt) {
     }
 });
 
-gameArea.canvas.addEventListener('click', function(evt) {
+gameArea.canvas.addEventListener('click', function (evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
     pos = mousePos;
     // Check click for blue deck cards (adjust for red deck if needed)
@@ -611,7 +610,7 @@ gameArea.canvas.addEventListener('click', function(evt) {
 });
 
 // Optional: Reset hover on mouse leave
-gameArea.canvas.addEventListener('mouseleave', function() {
+gameArea.canvas.addEventListener('mouseleave', function () {
     if (hoveredCard) {
         hoveredCard.onHoverExit();
         hoveredCard = null;
@@ -626,6 +625,6 @@ renderDecks();
  * Prints a message to the console and sends it to the server for logging. Used since I'm used to Python. (console.log still has normal functionality)
  * @param {string} string 
  */
-function print(string){
+function print(string) {
     console.log(string);
 }

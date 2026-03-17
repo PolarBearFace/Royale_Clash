@@ -6,7 +6,7 @@ You can also open the code in a text editor, copy everything from `cards.js` and
 
 <strong>ROADMAP:</strong>
 <ul>
-    <li>Unit movement basics (begun)</li>
+    <li>Unit movement basics (in progress)</li>
     <li>Enemy units and proper pathfinding updating</li>
     <li>Automatic enemy unit placement (enemy player AI/logic)</li>
     <li>Win/lose conditions</li>
