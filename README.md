@@ -1,8 +1,6 @@
 # Royale Clash
 Same but better and no images required<br>
-Currently to play: You will first need a GitHub account. Go to vscode.dev (sign in if needed), hit open repository, hit open repository from github, and search for the repo. Then, go to the run and debug option on the sidebar. Click continue working on, and create new codespace. Select whichever option (any works). Once it loads, go to Run and Debug on the sidebar and hit the play button. It should work. Open an issue if it doesn't. My instructions may be faulty.
-<br> Otherwise, you can just use desktop vscode.<br>
-You can also open the code in a text editor, copy everything from `cards.js` and replace the `import {cards, unitStats} from './cards.js'`  line with the code from `cards.js`. Save that and it will work in one file. When it gets to a playable state, I will transition over to having it in one file by default, so don't be concerned about that.
+To play: download the zip, open it, go to `GameFiles` and open `game.html`. It should work. If it doesn't try unzipping the file. (By don't work, I mean nothing appears on your screen, just having the title and the deck order titles)
 
 <strong>ROADMAP:</strong>
 <ul>
