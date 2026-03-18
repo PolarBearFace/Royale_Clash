@@ -14,7 +14,7 @@ import { cards, unitStats } from './cards.js';
 const gameState = {
     lastTime: 0,
     maxElixir: 10,
-    elixirRegenRate: 10.35, // elixir per second
+    elixirRegenRate: 0.35, // elixir per second
 }
 
 let pos = { x: 0, y: 0 }; // global mouse position
@@ -24,8 +24,8 @@ class Shape {
      * Creates a shape instance with the given x and y coordinates, shape type, properties, and color. The shape will be drawn on the canvas based on its type and properties. The properties parameter is an object that can contain different keys depending on the shape type (e.g. radius for circles, width and height for rectangles, etc.). The color parameter is a string representing the color to draw the shape.
      * @param {number} x 
      * @param {number} y 
-     * @param {string} shape 
-     * @param {object} properties 
+     * @param {string} shape 'circle' | 'rectangle' | 'text' (will render small square if not one of these)
+     * @param {object} properties circle: radius {number}; rectangle: width {number} height {number}; text: text {string} font {string}
      * @param {string} color 
      */
     constructor(x, y, shape = 'circle', properties = {}, color = 'black') {
@@ -190,12 +190,13 @@ class Unit {
         this.type = id.split('_')[1]
         this.team = id.split('_')[0]
         this.pos = [x, y]
-        this.stats = stats
+        this.stats = stats || { maxHP: 1000, damage: 50, speed: 20, attackSpeed: 1, range: 30, type: { melee: true, ground: true } } // default stats
         this.ai = {
             targets: []
         }
         this.active = true
-        this.radius = cards[this.type].size ? cards[this.type].size : 15; // default radius if size is undefined
+        this.cardData = cards[this.type] || { cost: 100, quantity: 1, size: 15 }
+        this.radius = this.cardData.size || 15;
         this.shape = new Shape(x, y, 'circle', { radius: this.radius }, this.checkColor(this.type));
         //print(`Spawned unit ${this.id} of type ${this.type} at position (${this.pos[0]}, ${this.pos[1]}) with stats: ${JSON.stringify(this.stats)}`);
         // Drawing will be handled by drawDeckOnCanvas
@@ -225,6 +226,22 @@ class Unit {
             color = 'red';
         }
         return color;
+    }
+}
+class Castle extends Unit {
+    /**
+     * 
+     * @param {object} stats 
+     * @param {string} id use format: team_{princess_{side}/king}
+     * @param {number} x 
+     * @param {number} y 
+     */
+    constructor(stats, id, x, y) {
+        super(stats, id, x, y);
+        this.shape.shape = 'rectangle';
+        this.shape.properties = { width: 40, height: 40 };
+        const teamColor = this.team == 'blue' ? 'blue' : 'red'
+        this.outlineShape = new Shape(x-5,y-5,'rectangle',{width: this.shape.properties.width+10, height: this.shape.properties.height+10},teamColor)
     }
 }
 class Target {
@@ -276,13 +293,13 @@ const gameArea = {
         },
         bridges: {
             x1: 80,
-            x2: 300,
+            x2: 320,
             y: 230,
             width: 40,
             height: 80,
             color: 'saddlebrown',
             leftBridge: new Shape(80, 230, 'rectangle', { width: 40, height: 80 }, 'saddlebrown'),
-            rightBridge: new Shape(300, 230, 'rectangle', { width: 40, height: 80 }, 'saddlebrown')
+            rightBridge: new Shape(320, 230, 'rectangle', { width: 40, height: 80 }, 'saddlebrown')
         }
     },
     activeUnits: [],
@@ -295,13 +312,13 @@ const gameArea = {
 }
 // will fill in more player things when needed
 const redPlayer = {
-    elixir: 0,
+    elixir: 7,
     crowns: 0,
     castles: [true, true, true], // left princess, king, right princess; true means standing, false means destroyed
     castleUnits: []
 }
 const bluePlayer = {
-    elixir: 0,
+    elixir: 7,
     crowns: 0,
     castles: [true, true, true], // left princess, king, right princess; true means standing, false means destroyed
     castleUnits: []
@@ -318,6 +335,14 @@ function startGame() {
 
     renderDecks();
     // Add castles here:
+    bluePlayer.castleUnits.push(new Castle(unitStats.princess, 'blue_princess_left', gameArea.playField.bridges.x1, gameArea.playField.height-80))
+    bluePlayer.castleUnits.push(new Castle(unitStats.princess, 'blue_princess_right', gameArea.playField.bridges.x2, gameArea.playField.height-80))
+    bluePlayer.castleUnits.push(new Castle(unitStats.king, 'blue_king', gameArea.playField.width/2, gameArea.playField.height-50))
+    redPlayer.castleUnits.push(new Castle(unitStats.princess, 'red_princess_left', gameArea.playField.bridges.x1, 80))
+    redPlayer.castleUnits.push(new Castle(unitStats.princess, 'red_princess_right', gameArea.playField.bridges.x2, 80))
+    redPlayer.castleUnits.push(new Castle(unitStats.king, 'red_king', gameArea.playField.width/2, 50))
+    
+
     gameArea.activeUnits.push(new Unit(unitStats.knight, 'red_knight_1', gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y + 80))
     requestAnimationFrame(gameLoop);
 }
@@ -348,6 +373,14 @@ function drawDeckOnCanvas(team) {
     // Draw active units on top of the playfield
     gameArea.activeUnits.forEach(unit => {
         unit.shape.render(ctx);
+    });
+    redPlayer.castleUnits.forEach(castle =>{
+        castle.outlineShape.render(ctx);
+        castle.shape.render(ctx);
+    });
+    bluePlayer.castleUnits.forEach(castle =>{
+        castle.outlineShape.render(ctx);
+        castle.shape.render(ctx);
     });
 
     // Draw elixir display
@@ -466,7 +499,7 @@ function updateLogic(deltaTime) {
     }
     gameArea.activeUnits.forEach(unit => {
         // Placeholder logic for unit movement - currently just moves units up the field
-        if (unit.active) {
+        if (unit.active && unit.stats.speed > 0) {
             let direction = unit.id.startsWith('blue') ? -1 : 1; // blue units move up, red units move down
             unit.pos[1] += direction * unit.stats.speed * deltaTime;
             unit.shape.x = unit.pos[0];

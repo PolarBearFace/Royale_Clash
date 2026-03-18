@@ -39,6 +39,16 @@ export const cards = {
         cost: 3,
         quantity: 1,
         size: undefined
+    },
+    king: {
+        cost: 100,
+        quantity: 1,
+        size: 10
+    },
+    princess: {
+        cost: 100,
+        quantity: 1,
+        size: 10
     }
 }
 
@@ -136,10 +146,10 @@ export const unitStats = {
             ground: true
         }
     },
-    kingTower: {
+    king: {
         maxHP: 2400,
         damage: 50,
-        speed: null,
+        speed: 0,
         attackSpeed: 0.9,
         range: 100,
         type: {
@@ -147,10 +157,10 @@ export const unitStats = {
             ground: true
         }
     },
-    princessTower: {
+    princess: {
         maxHP: 1400,
         damage: 50,
-        speed: null,
+        speed: 0,
         attackSpeed: 1.0,
         range: 100,
         type: {
