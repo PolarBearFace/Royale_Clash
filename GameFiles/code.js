@@ -1,16 +1,184 @@
 /**
  * Browser safe random integer generator. Returns a random integer between min (inclusive) and max (exclusive).
- * @param {number} min 
+ * @param {number} min
  * @param {number} max 
  * @returns a random integer between min (inclusive) and max (exclusive)
  */
 function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
 }
+//Switched back since old method is kinda jank. Cards still exist in seperate file, however.
+const cards = {
+    knight: {
+        cost: 3,
+        quantity: 1,
+        //Currently defaults to 15
+        size: undefined
+    },
+    minipekka: {
+        cost: 5,
+        quantity: 1,
+        size: undefined
+    },
+    skeleton: {
+        cost: 1,
+        quantity: 3,
+        size: 10
+    },
+    flyingMachine: {
+        cost: 4,
+        quantity: 1,
+        size: undefined
+    },
+    wizard: {
+        cost: 4,
+        quantity: 1,
+        size: undefined
+    },
+    prince: {
+        cost: 5,
+        quantity: 1,
+        size: 18
+    },
+    archers: {
+        cost: 2,
+        quantity: 2,
+        size: 13
+    },
+    valkyrie: {
+        cost: 3,
+        quantity: 1,
+        size: undefined
+    },
+    king: {
+        cost: 100,
+        quantity: 1,
+        size: 10
+    },
+    princess: {
+        cost: 100,
+        quantity: 1,
+        size: 10
+    }
+}
+const unitStats = {
+    knight: {
+        maxHP: 690,
+        damage: 50,
+		speed: 10,
+		attackSpeed: 0.5,
+		range: 20,
+        type: {
+            melee: true,
+            ground: true
+        }
+    },
+    minipekka: {
+        maxHP: 817,
+		damage: 200,
+		speed: 10,
+		attackSpeed: 0.8,
+		range: 20,
+        type: {
+            melee: true,
+            ground: true
+        }
+    },
+    skeleton: {
+        maxHP: 50,
+        damage: 10,
+		speed: 10,
+		attackSpeed: 0.3,
+		range: 20,
+        type: {
+            melee: true,
+            ground: true
+        }
+    },
+    flyingMachine: {
+        maxHP: 400,
+		damage: 90,
+		speed: 10,
+		attackSpeed: 0.7,
+		range: 70,
+        type: {
+            melee: false,
+            ground: false
+        }
+    },
+    wizard: {
+        maxHP: 300,
+        damage: 60,
+		speed: 10,
+		attackSpeed: 0.5,
+		range: 80,
+        //[radius] (may need to add more)
+        aoe: [10],
+        type: {
+            melee: false,
+            ground: true
+        }
+    },
+    prince: {
+        maxHP: 1000,
+		damage: 100,
+		speed: 10,
+		attackSpeed: 0.7,
+		range: 30,
+        //[chargeTime, chargeDamageMult, chargeCooldown, chargeSpeedMult] (may need to add more)
+        charge: [0,1.5,0,1.5],
+        type: {
+            melee: true,
+            ground: true
+        }
+    },
+    archers: {
+        maxHP: 200,
+        damage: 50,
+		speed: 10,
+		attackSpeed: 0.5,
+		range: 80,
+        type: {
+            melee: false,
+            ground: true
+        }
+    },
+    valkyrie: {
+        maxHP: 800,
+		damage: 50,
+		speed: 10,
+		attackSpeed: 0.8,
+		range: 20,
+        aoe: [10],
+        type: {
+            melee: true,
+            ground: true
+        }
+    },
+    king: {
+        maxHP: 2400,
+        damage: 50,
+        speed: 0,
+        attackSpeed: 0.9,
+        range: 100,
+        type: {
+            melee: false,
+            ground: true
+        }
+    },
+    princess: {
+        maxHP: 1400,
+        damage: 50,
+        speed: 0,
+        attackSpeed: 1.0,
+        range: 100,
+        type: {
+            melee: false,
+            ground: true
+        }
+    }
+}
 
-// Will only work if using the server.js infrastructure. Otherwise, it will fail. May change either instructions or change back later
-// Will fail using file:// protocol due to CORS issues with fetch, so only use with server.js
-import { cards, unitStats } from './cards.js';
 const gameState = {
     lastTime: 0,
     maxElixir: 10,
@@ -86,9 +254,31 @@ class Card {
         this.y = undefined; // y will be determined by renderCards based on pos and hover state
         this.scale = 1; // default scale, can be modified for hover effect
         this.isDragging = false; // flag to indicate if the card is being dragged
-        this.shape = new Shape(this.x, this.y, 'rectangle', { width: 70, height: 100 }, 'gray'); // default shape for rendering; actual position and size will be set in renderCards
+        this.shape = new Shape(this.x, this.y, 'rectangle', { width: 70, height: 100 }, this.getColor()); // default shape for rendering; actual position and size will be set in renderCards
         this.textShape = new Shape(this.x + 5, this.y + 50, 'text', { text: this.type, font: '12px Arial' }, 'white'); // shape for rendering text; position will be set in renderCards
         this.costShape = new Shape(this.x + 5, this.y + 70, 'text', { text: `Cost: ${this.cost}`, font: '12px Arial' }, 'white'); // shape for rendering cost; position will be set in renderCards
+    }
+    getColor(){
+        let type = this.type;
+        let color = 'black';
+        if (type == 'knight') {
+            color = 'gray';
+        } else if (type == 'minipekka') {
+            color = 'purple';
+        } else if (type == 'skeleton') {
+            color = 'lightgrey';
+        } else if (type == 'flyingMachine') {
+            color = 'brown';
+        } else if (type == 'wizard') {
+            color = 'orange';
+        } else if (type == 'prince') {
+            color = 'gold';
+        } else if (type == 'archers') {
+            color = 'pink';
+        } else if (type == 'valkyrie') {
+            color = 'red';
+        }
+        return color;
     }
     renderCards() {
         const ctx = gameArea.canvas.getContext('2d');
@@ -163,7 +353,11 @@ class Card {
                 this.x = 20; // reset to base x; actual position will be set by rollDeck when drawn
                 this.y = undefined; // reset to default position
                 for (let i = 0; i < cards[this.type].quantity; i++) {
-                    gameArea.activeUnits.push(new Unit(this.stats, `${this.team}_${this.type}_${gameArea.activeUnits.length}`, pos.x + i * 15, pos.y));
+                    let n = 0
+                    gameArea.activeUnits.forEach(unit => {
+                        if (unit.type == this.type){n += 1;}
+                    });
+                    gameArea.activeUnits.push(new Unit(this.stats, `${this.team}_${this.type}_${n+1}`, pos.x + i * 15, pos.y));
                     gameArea.activeUnits[gameArea.activeUnits.length - 1].ai.targets = getInitialTargets(gameArea.activeUnits[gameArea.activeUnits.length - 1]);
                 }
                 updateDeckPositions('blue');
@@ -180,10 +374,10 @@ class Card {
 class Unit {
     /**
      * Creates a unit instance with the given stats, id, and position. The id should be in the format 'team_type_number' (e.g. 'blue_knight_1'). The position is an array [x, y] internally, representing the unit's location on the canvas. The unit will be drawn as a colored square based on its type.
-     * @param {object} stats // the stats of the unit, should correspond to the unitStats object imported from cards.js
-     * @param {string} id // the id of the unit, should be in the format 'team_type_number' (e.g. 'blue_knight_1')
-     * @param {number} x // the x coordinate of the unit's position on the canvas
-     * @param {number} y // the y coordinate of the unit's position on the canvas
+     * @param {object} stats the stats of the unit, should correspond to the unitStats object imported from cards.js
+     * @param {string} id the id of the unit, should be in the format 'team_type_number' (e.g. 'blue_knight_1')
+     * @param {number} x the x coordinate of the unit's position on the canvas
+     * @param {number} y the y coordinate of the unit's position on the canvas
      */
     constructor(stats, id, x, y) {
         this.id = id
@@ -247,10 +441,10 @@ class Castle extends Unit {
 class Target {
     /**
      * Used to store a target a unit can use. Only used for the Unit.target list
-     * @param {number} x // the x coordinate of the target on the canvas
-     * @param {number} y // the y coordinate of the target on the canvas
-     * @param {string} id // the id of the unit (team_type_number), structure ({team}{TowerType}{Type}), or bridge (bridge{Side}{Start/End})
-     * @param {string} type // the target type, either 'unit', 'tower', or 'bridge'
+     * @param {number} x the x coordinate of the target on the canvas
+     * @param {number} y the y coordinate of the target on the canvas
+     * @param {string} id the id of the unit (team_type_number), structure ({team}{TowerType}{Type}), or bridge (bridge{Side}{Start/End})
+     * @param {string} type the target type 'unit', 'tower', 'bridge', or 'pos'
      */
     constructor(x, y, id, type) {
         this.x = x;
@@ -650,7 +844,6 @@ gameArea.canvas.addEventListener('mouseleave', function () {
         drawDeckOnCanvas('blue');
     }
 });
-
 // render initial decks
 startGame()
 renderDecks();
