@@ -536,8 +536,8 @@ function startGame() {
     redPlayer.castleUnits.push(new Castle(unitStats.princess, 'red_princess_right', gameArea.playField.bridges.x2, 80))
     redPlayer.castleUnits.push(new Castle(unitStats.king, 'red_king', gameArea.playField.width/2, 50))
     
-
-    gameArea.activeUnits.push(new Unit(unitStats.knight, 'red_knight_1', gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y + 80))
+    gameArea.activeUnits.push(new Unit(unitStats.knight, 'red_knight_1', gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y - 80));
+    gameArea.activeUnits[gameArea.activeUnits.length - 1].ai.targets = getInitialTargets(gameArea.activeUnits[gameArea.activeUnits.length - 1]);
     requestAnimationFrame(gameLoop);
 }
 let currentUnits = []
@@ -719,26 +719,66 @@ function getInitialTargets(unit) {
             } else {
                 targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
                 targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
-
             }
         }
         if (unit.pos[0] < gameArea.playField.width / 2) {
             if (redPlayer.castles[0]) {
-                targets.push(new Target(60, 60, 'red_princess_left', 'tower'));
+                targets.push(new Target(gameArea.playField.bridges.x1, 80, 'red_princess_left', 'tower'));
             }
         } else {
             if (redPlayer.castles[2]) {
-                targets.push(new Target(340, 60, 'red_princess_right', 'tower'));
+                targets.push(new Target(gameArea.playField.bridges.x2, 80, 'red_princess_right', 'tower'));
             }
         }
         if (redPlayer.castles[1]) {
-            targets.push(new Target(200, 40, 'red_king', 'tower'));
+            targets.push(new Target(gameArea.playField.width/2, 50, 'red_king', 'tower'));
         }
         print(`Unit ${unit.id} has targets: ${targets.map(t => t.id).join(', ')}`);
         return targets;
     } else {
-        print('red unit spawned - no AI yet');
-        return [];
+        if (getClosestUnit(unit) != null){
+            let closest = getClosestUnit(unit);
+            if (closest.pos[1] < gameArea.playField.river.y && getDistance(unit.pos,closest.pos) < 200){
+                targets.push(new Target(closest.pos[0],closest.pos[1],closest.id,'unit'));
+            }
+        }
+        if (unit.pos[1] < gameArea.playField.river.y){
+            if (unit.pos[0] < gameArea.playField.width/2){
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeLeftEnd', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
+            } else {
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
+            }
+        }
+        if (unit.pos[0] < gameArea.playField.width/2){
+            if (bluePlayer.castles[0]){
+                targets.push(new Target(gameArea.playField.bridges.x1,gameArea.playField.height-80,'blue_princess_left','tower'));
+            }
+        } else {
+            if (bluePlayer.castles[2]){
+                targets.push(new Target(gameArea.playField.bridges.x2, gameArea.playField.height-80,'blue_princess_right','tower'))
+            }
+        }
+        if (bluePlayer.castles[1]){
+            targets.push(new Target(gameArea.playField.width/2, gameArea.playField.height-50,'blue_king','tower'))
+        }
+        console.log(`Unit ${unit.id} has target: ${targets.map(t => t.id).join(', ')}`);
+        return targets;
+    }
+}
+
+function updateTargets(unit){
+    // Needs map out on paper before I can finish this
+    if (unit.ai.targets[0].type == 'unit'){
+        let closest = getClosestUnit(unit)
+        if (closest != unit.ai.targets[0].type){
+            unit.ai.targets[0].type = closest;
+        }
+    } else {
+        if (getDistance(getClosestUnit(unit)) < 200){
+            unit.ai.targets.push(getClosestUnit(unit));
+        }
     }
 }
 
