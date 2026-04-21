@@ -54,7 +54,16 @@ const server = http.createServer((req, res) => {
         return;
     }
     
-    let filePath = path.join(__dirname, 'GameFiles', req.url === '/' ? 'game.html' : req.url);
+    const gameRoot = path.resolve(__dirname, 'GameFiles');
+    const requestPath = (req.url || '/').split('?')[0];
+    const relativePath = requestPath === '/' ? 'game.html' : requestPath.replace(/^\/+/, '');
+    const filePath = path.resolve(gameRoot, relativePath);
+
+    if (filePath !== gameRoot && !filePath.startsWith(gameRoot + path.sep)) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+    }
     
     fs.readFile(filePath, (err, content) => {
         if (err) {
