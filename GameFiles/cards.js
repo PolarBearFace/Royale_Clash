@@ -169,3 +169,42 @@ export const unitStats = {
         }
     }
 }
+
+export const projectileStats = {
+    flyingMachineProjectile: {
+        damage: 90,
+        speed: 20,
+        range: 80,
+        aoe: [],
+        // Will be set when unit is created, since it needs to reference the unit that created it
+        source: undefined
+    },
+    wizardProjectile: {
+        damage: 60,
+        speed: 15,
+        range: 80,
+        aoe: [10],
+        source: undefined
+    },
+    archerProjectile: {
+        damage: 50,
+        speed: 20,
+        range: 80,
+        aoe: [],
+        source: undefined
+    },
+    princessProjectile: {
+        damage: 50,
+        speed: 20,
+        range: 100,
+        aoe: [],
+        source: undefined
+    },
+    kingProjectile: {
+        damage: 50,
+        speed: 20,
+        range: 100,
+        aoe: [],
+        source: undefined
+    }
+}

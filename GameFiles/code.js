@@ -386,7 +386,7 @@ class Unit {
         this.pos = [x, y]
         this.stats = stats || { maxHP: 1000, damage: 50, speed: 20, attackSpeed: 1, range: 30, type: { melee: true, ground: true } } // default stats
         this.ai = {
-            targets: []
+            targets: []//Target
         }
         this.active = true
         this.cardData = cards[this.type] || { cost: 100, quantity: 1, size: 15 }
@@ -452,6 +452,34 @@ class Target {
         this.id = id;
         this.type = type; // 'unit', 'tower', 'bridge'
         this.active = true; // whether the target is still usable, e.g. if a unit is on a bridge, the end it entered from is set to inactive so it doesn't go back around, but keeps that it's still on the bridge
+    }
+}
+class Projectile {
+    /**
+     * Stores and handles projectile data
+     * @param {Number} x 
+     * @param {Number} y 
+     * @param {Target} target 
+     * @param {Number} damage 
+     * @param {Array<Number>} speed 
+     * @param {Number} radius 
+     * @param {String} color 
+     * @param {Unit} source 
+     */
+    constructor(x, y, target, damage, speed, radius, color, source) {
+        this.x = x;
+        this.y = y;
+        this.target = target;
+        this.damage = damage;
+        this.speed = speed;
+        this.shape = new Shape(x, y, 'circle', { radius: radius }, color);
+        this.source = source;
+        this.aoe = source.stats.aoe || null; // if the source unit has an aoe property, use it to determine if this projectile has an aoe effect and what the radius is; otherwise, this projectile does not have an aoe effect
+    }
+    move(deltaTime) {
+        this.x += this.speed[0] * deltaTime;
+        this.y += this.speed[1] * deltaTime;
+        this.shape.render(gameArea.canvas.getContext('2d'));
     }
 }
 let blueDeck = []
@@ -537,7 +565,10 @@ function startGame() {
     redPlayer.castleUnits.push(new Castle(unitStats.king, 'red_king', gameArea.playField.width/2, 50))
     
     gameArea.activeUnits.push(new Unit(unitStats.knight, 'red_knight_1', gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y - 80));
-    gameArea.activeUnits[gameArea.activeUnits.length - 1].ai.targets = getInitialTargets(gameArea.activeUnits[gameArea.activeUnits.length - 1]);
+    gameArea.activeUnits.push(new Unit(unitStats.knight, 'blue_knight_1', gameArea.playField.bridges.x2 + 10, gameArea.playField.bridges.y + 160));
+    console.log(getClosestUnit(gameArea.activeUnits[1]).id.toString());
+    getInitialTargets(gameArea.activeUnits[0]);
+    getInitialTargets(gameArea.activeUnits[1]);
     requestAnimationFrame(gameLoop);
 }
 let currentUnits = []
@@ -678,6 +709,10 @@ function gameLoop(timestamp) {
     renderGame();
     requestAnimationFrame(gameLoop);
 }
+/** 
+ * Updates the game logic based on the elapsed time since the last update. This includes regenerating elixir for both players and moving active units on the playfield. The movement logic is currently a placeholder that simply moves units up the field (blue units move up, red units move down) based on their speed stat. This function will be called in the main game loop with the time delta to ensure smooth and consistent updates regardless of frame rate.
+ * @param {number} deltaTime the time elapsed since the last update, in seconds
+ */
 function updateLogic(deltaTime) {
     if (bluePlayer.elixir < gameState.maxElixir) {
         bluePlayer.elixir += gameState.elixirRegenRate * deltaTime;
@@ -702,129 +737,6 @@ function updateLogic(deltaTime) {
     });
 }
 
-// AI logic for units
-function getInitialTargets(unit) {
-    let targets = [];
-    if (unit.team === 'blue') {
-        if (getClosestUnit(unit) != null) {
-            let closest = getClosestUnit(unit);
-            if (closest.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height && getDistance(unit.pos, closest.pos) < 100) {
-                targets.push(new Target(closest.pos[0], closest.pos[1], closest.id, 'unit'));
-            }
-        }
-        if (unit.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height) {
-            if (unit.pos[0] < gameArea.playField.width / 2) {
-                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
-                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeLeftEnd', 'bridge'));
-            } else {
-                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
-                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
-            }
-        }
-        if (unit.pos[0] < gameArea.playField.width / 2) {
-            if (redPlayer.castles[0]) {
-                targets.push(new Target(gameArea.playField.bridges.x1, 80, 'red_princess_left', 'tower'));
-            }
-        } else {
-            if (redPlayer.castles[2]) {
-                targets.push(new Target(gameArea.playField.bridges.x2, 80, 'red_princess_right', 'tower'));
-            }
-        }
-        if (redPlayer.castles[1]) {
-            targets.push(new Target(gameArea.playField.width/2, 50, 'red_king', 'tower'));
-        }
-        print(`Unit ${unit.id} has targets: ${targets.map(t => t.id).join(', ')}`);
-        return targets;
-    } else {
-        if (getClosestUnit(unit) != null){
-            let closest = getClosestUnit(unit);
-            if (closest.pos[1] < gameArea.playField.river.y && getDistance(unit.pos,closest.pos) < 200){
-                targets.push(new Target(closest.pos[0],closest.pos[1],closest.id,'unit'));
-            }
-        }
-        if (unit.pos[1] < gameArea.playField.river.y){
-            if (unit.pos[0] < gameArea.playField.width/2){
-                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeLeftEnd', 'bridge'));
-                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
-            } else {
-                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
-                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
-            }
-        }
-        if (unit.pos[0] < gameArea.playField.width/2){
-            if (bluePlayer.castles[0]){
-                targets.push(new Target(gameArea.playField.bridges.x1,gameArea.playField.height-80,'blue_princess_left','tower'));
-            }
-        } else {
-            if (bluePlayer.castles[2]){
-                targets.push(new Target(gameArea.playField.bridges.x2, gameArea.playField.height-80,'blue_princess_right','tower'))
-            }
-        }
-        if (bluePlayer.castles[1]){
-            targets.push(new Target(gameArea.playField.width/2, gameArea.playField.height-50,'blue_king','tower'))
-        }
-        console.log(`Unit ${unit.id} has target: ${targets.map(t => t.id).join(', ')}`);
-        return targets;
-    }
-}
-
-function updateTargets(unit){
-    // Needs map out on paper before I can finish this
-    if (unit.ai.targets[0].type == 'unit'){
-        let closest = getClosestUnit(unit)
-        if (closest != unit.ai.targets[0].type){
-            unit.ai.targets[0].type = closest;
-        }
-    } else {
-        if (getDistance(getClosestUnit(unit)) < 200){
-            unit.ai.targets.push(getClosestUnit(unit));
-        }
-    }
-}
-
-/**
- * @param {object} unit 
- * @returns {object} the closest enemy unit to the given unit, or null if there are no enemy units
- */
-function getClosestUnit(unit) {
-    if (unit.team === 'blue') {
-        const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'red' && u.active);
-        if (enemyUnits.length === 0) { return null; }
-        let closest = enemyUnits[0];
-        let closestDist = getDistance(unit.pos, enemyUnits[0].pos);
-        if (enemyUnits.length == 1) { return closest; }
-        for (let i = 0; i < enemyUnits.length; i++) {
-            const dist = getDistance(unit.pos, enemyUnits[i].pos);
-            if (dist < closestDist) {
-                closest = enemyUnits[i];
-                closestDist = dist;
-            }
-        }
-        return closest;
-    } else {
-        const enemyUnits = gameArea.activeUnits.filter(u => u.team === 'blue' && u.active);
-        if (enemyUnits.length === 0) return null;
-        let closest = enemyUnits[0];
-        let closestDist = getDistance(unit.pos, enemyUnits[0].pos);
-        if (enemyUnits.length == 1) { return closest; }
-        for (let i = 1; i < enemyUnits.length; i++) {
-            const dist = getDistance(unit.pos, enemyUnits[i].pos);
-            if (dist < closestDist) {
-                closest = enemyUnits[i];
-                closestDist = dist;
-            }
-        }
-        return closest;
-    }
-}
-/**
- * @param {Array<number>} pos1 
- * @param {Array<number>} pos2 
- * @returns {number} the distance between the two positions, where each position is an array [x, y]
- */
-function getDistance(pos1, pos2) {
-    return Math.hypot(pos1[0] - pos2[0], pos1[1] - pos2[1]);
-}
 gameArea.canvas.addEventListener('mousemove', function (evt) {
     const mousePos = getMousePos(gameArea.canvas, evt);
     pos = mousePos;
@@ -894,3 +806,162 @@ renderDecks();
 function print(string) {
     console.log(string);
 }
+
+
+/**
+ * Gets the closest unit to the specified unit.
+ * @param {Unit} unit 
+ * @returns {Unit | null}
+ */
+function getClosestUnit(unit) {
+    const units = gameArea.activeUnits.filter(u => u.team !== unit.team && u.active);
+    if (units.length === 0) return null;
+    let closest = units[0];
+    let closestDist = getDistance(unit.pos, closest.pos);
+    for (let i = 1; i < units.length; i++) {
+        const dist = getDistance(unit.pos, units[i].pos);
+        if (dist < closestDist) {
+            closest = units[i];
+            closestDist = dist;
+        }
+    }
+    return closest;
+}
+
+/**
+ * Gets the initial targets for a unit when it is spawned. This function checks the unit's position and team to determine which targets are relevant for it to pursue. For example, if a blue unit is spawned on the bottom half of the field, it will prioritize targeting enemy units that are close by, then the bridges if it's near them, then the enemy princess towers if it's on the correct side, and finally the enemy king tower. The same logic applies for red units but in reverse. The function returns an array of Target objects that the unit will use in its AI behavior.
+ * @param {Unit} unit 
+ * @returns {Array<Target>} an array of initial targets for the unit, based on its position and team. The unit will prioritize nearby enemy units, then bridges if it's near them, then enemy princess towers if it's on the correct side, and finally the enemy king tower. This is a very basic AI targeting system and can be expanded in the future with more complex logic.
+ */
+function getInitialTargets(unit) {
+    let targets  = [];
+    let addedUnitTarget = false;
+    if (unit.team === 'blue') {
+        if (getClosestUnit(unit) != null && !addedUnitTarget) {
+            let closest = getClosestUnit(unit);
+            targets.push(new Target(closest.pos[0], closest.pos[1], closest.id, 'unit'));
+            addedUnitTarget = true;
+        }
+        if (unit.pos[1] > gameArea.playField.river.y + gameArea.playField.river.height) {
+            if (unit.pos[0] < gameArea.playField.width / 2) {
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeLeftEnd', 'bridge'));
+            } else {
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
+            }
+        }
+        if (unit.pos[0] < gameArea.playField.width / 2) {
+            if (redPlayer.castles[0]) {
+                targets.push(new Target(gameArea.playField.bridges.x1, 80, 'red_princess_left', 'tower'));
+            }
+        } else {
+            if (redPlayer.castles[2]) {
+                targets.push(new Target(gameArea.playField.bridges.x2, 80, 'red_princess_right', 'tower'));
+            }
+        }
+        if (redPlayer.castles[1]) {
+            targets.push(new Target(gameArea.playField.width/2, 50, 'red_king', 'tower'));
+        }
+    } else {
+        if (getClosestUnit(unit) != null && !addedUnitTarget) {
+            let closest = getClosestUnit(unit);
+            targets.push(new Target(closest.pos[0], closest.pos[1], closest.id, 'unit'));
+            addedUnitTarget = true;
+        }
+        if (unit.pos[1] < gameArea.playField.river.y) {
+            if (unit.pos[0] < gameArea.playField.width / 2) {
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeLeftEnd', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x1 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeLeftStart', 'bridge'));
+            } else {
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y, 'bridgeRightEnd', 'bridge'));
+                targets.push(new Target(gameArea.playField.bridges.x2 + gameArea.playField.bridges.width / 2, gameArea.playField.bridges.y + gameArea.playField.bridges.height, 'bridgeRightStart', 'bridge'));
+            }
+        }
+        if (unit.pos[0] < gameArea.playField.width / 2) {
+            if (bluePlayer.castles[0]) {
+                targets.push(new Target(gameArea.playField.bridges.x1, gameArea.playField.height-80, 'blue_princess_left', 'tower'));
+            }
+        } else {
+            if (bluePlayer.castles[2]) {
+                targets.push(new Target(gameArea.playField.bridges.x2, gameArea.playField.height-80, 'blue_princess_right', 'tower'));
+            }
+        }
+        if (bluePlayer.castles[1]) {
+            targets.push(new Target(gameArea.playField.width/2, gameArea.playField.height-50, 'blue_king', 'tower'));
+        }
+    }
+    targets = sortInitialTargets(unit, targets);
+    console.log(`Unit ${unit.id} initial targets: ${targets.map(t => t.id).join(', ')}`);
+    return targets;
+}
+/**
+ * @param {Array<number>} pos1 
+ * @param {Array<number>} pos2 
+ * @returns {number} the distance between the two positions, where each position is an array [x, y]
+ */
+function getDistance(pos1, pos2) {
+    return Math.hypot(pos1[0] - pos2[0], pos1[1] - pos2[1]);
+}
+
+/**
+ * Checks if a unit is currently on a bridge.
+ * @param {Unit} unit 
+ * @param {Number} bridgeX 
+ * @returns {Boolean} whether the unit is currently on the bridge with the given x coordinate (bridgeX should be the center x coordinate of the bridge)
+ */
+function isUnitOnBridge(unit, bridgeX) {
+    const bridge = gameArea.playField.bridges;
+    return Math.abs(unit.pos[0] - bridgeX) <= bridge.width / 2 &&
+        unit.pos[1] >= bridge.y &&
+        unit.pos[1] <= bridge.y + bridge.height;
+}
+/**
+ * Sorts the initial targets for a unit based on its position and the target types.
+ * @param {Unit} unit 
+ * @param {Array<Target>} targets 
+ * @returns {Array<Target>} the targets sorted in the order the unit should pursue them, based on the unit's position and the target types. The unit will prioritize nearby enemy units, then bridges if it's near them, then enemy princess towers if it's on the correct side, and finally the enemy king tower. This function is used to sort the initial targets for a unit when it is spawned, to ensure it pursues them in a logical order based on its situation on the field.
+ */
+function sortInitialTargets(unit, targets) {
+    const originalTargets = targets.slice();
+    const bridgeTargets = targets.filter(t => t.type === 'bridge');
+    const unitTarget = targets.find(t => t.type === 'unit');
+    const bridge = gameArea.playField.bridges;
+
+    // Check if unit needs to cross bridge to reach enemy unit
+    if (bridgeTargets.length === 2 && unitTarget) {
+        const unitNeedsToCrossBridge = 
+            (unit.team === 'blue' && unit.pos[1] > bridge.y + bridge.height && unitTarget.y < bridge.y) ||
+            (unit.team === 'red' && unit.pos[1] < bridge.y && unitTarget.y > bridge.y + bridge.height);
+
+        if (unitNeedsToCrossBridge) {
+            const nonBridgeNonUnit = originalTargets.filter(t => t.type !== 'bridge' && t.type !== 'unit');
+            // Order bridges by which comes first based on unit direction and position
+            const orderedBridges = unit.team === 'blue' 
+                ? [bridgeTargets.find(t => t.id.includes('Start')), bridgeTargets.find(t => t.id.includes('End'))]
+                : [bridgeTargets.find(t => t.id.includes('End')), bridgeTargets.find(t => t.id.includes('Start'))];
+            return [orderedBridges[0], orderedBridges[1], unitTarget, ...nonBridgeNonUnit];
+        }
+
+        // If on bridge but doesn't need full crossing, put unit target between bridges
+        if (isUnitOnBridge(unit, bridgeTargets[0].x)) {
+            const nonBridgeNonUnit = originalTargets.filter(t => t.type !== 'bridge' && t.type !== 'unit');
+            return [bridgeTargets[0], unitTarget, bridgeTargets[1], ...nonBridgeNonUnit];
+        }
+    }
+
+    return originalTargets
+        .map((target, index) => ({
+            target,
+            dist: getDistance(unit.pos, [target.x, target.y]),
+            index
+        }))
+        .sort((a, b) => a.dist - b.dist || a.index - b.index)
+        .map(item => item.target);
+}
+
+/**
+ * Updates the targets for a unit based on its current state and the game environment.
+ * @param {Unit} unit 
+ */
+function updateTargets(unit) {}
